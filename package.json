@@ -14,11 +14,17 @@
     "type": "git",
     "url": "git+https://github.com/dlwiest/ts-tonal-mcp.git"
   },
-  "keywords": ["mcp", "tonal", "fitness", "llm", "claude"],
+  "keywords": [
+    "mcp",
+    "tonal",
+    "fitness",
+    "llm",
+    "claude"
+  ],
   "author": "dlwiest",
   "license": "ISC",
   "dependencies": {
-    "@dlwiest/ts-tonal-client": "^0.1.0",
+    "@dlwiest/ts-tonal-client": "^0.1.1",
     "@modelcontextprotocol/sdk": "^0.5.0"
   },
   "devDependencies": {
