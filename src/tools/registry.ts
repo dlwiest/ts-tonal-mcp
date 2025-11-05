@@ -7,6 +7,7 @@ import { getMuscleReadiness } from './muscle-readiness.js';
 import { getMovements } from './movements.js';
 import { getRecentWorkouts } from './workouts.js';
 import { getUserStats, getRecentProgress } from './user-stats.js';
+import { listCustomWorkouts, deleteCustomWorkout, getCustomWorkoutDetails } from './custom-workouts.js';
 
 // Fitness/Health Tools
 const fitnessTools: MCPToolDefinition[] = [
@@ -58,6 +59,46 @@ const workoutTools: MCPToolDefinition[] = [
       required: [],
     },
     handler: getRecentWorkouts,
+  },
+  {
+    name: 'list_custom_workouts',
+    description: 'List all your custom workouts created on Tonal',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+      required: [],
+    },
+    handler: listCustomWorkouts,
+  },
+  {
+    name: 'delete_custom_workout',
+    description: 'Delete a custom workout by name',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        workoutName: {
+          type: 'string',
+          description: 'The exact name of the workout to delete',
+        },
+      },
+      required: ['workoutName'],
+    },
+    handler: deleteCustomWorkout,
+  },
+  {
+    name: 'get_custom_workout_details',
+    description: 'Get detailed information about a specific custom workout including all sets and movements',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        workoutName: {
+          type: 'string',
+          description: 'The exact name of the workout to view',
+        },
+      },
+      required: ['workoutName'],
+    },
+    handler: getCustomWorkoutDetails,
   },
 ];
 

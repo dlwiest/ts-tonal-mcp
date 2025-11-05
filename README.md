@@ -92,6 +92,9 @@ The server provides these tools for LLM interactions:
 | `get_recent_workouts` | View recent workout history with summary statistics |
 | `get_user_stats` | Get comprehensive fitness statistics and current streak |
 | `get_recent_progress` | Analyze recent progress including workout frequency and trends |
+| `list_custom_workouts` | List all your custom workouts created on Tonal |
+| `delete_custom_workout` | Delete a custom workout by name |
+| `get_custom_workout_details` | Get detailed information about a custom workout including all sets |
 
 ## Example Conversations
 
@@ -102,6 +105,9 @@ With the MCP server connected, you can ask Claude:
 - *"How's my progress lately?"* → Analyzes recent metrics and trends
 - *"What chest exercises are available?"* → Filters movements by muscle group
 - *"Am I staying consistent with my workouts?"* → Reviews frequency and streaks
+- *"Show me my custom workouts"* → Lists all your created workouts
+- *"Delete my workout called 'Old Routine'"* → Removes a specific custom workout
+- *"Show me details for 'Upper Body Blast'"* → View full workout structure with all sets
 
 ## Development
 
