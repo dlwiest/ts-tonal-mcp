@@ -5,7 +5,8 @@ import {
   CallToolRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { TonalService } from './services/tonal-service.js';
-import { getMuscleReadiness, getMovements } from './tools/index.js';
+import { allTools, toolsRegistry } from './tools/registry.js';
+import { handleToolError } from './utils/error-handler.js';
 
 export class TonalMCPServer {
   private server: Server;
@@ -25,71 +26,36 @@ export class TonalMCPServer {
     );
 
     this.tonalService = new TonalService();
-    this.setupToolHandlers();
+    this.setupHandlers();
     console.error('TonalMCPServer created');
   }
 
-  private setupToolHandlers() {
-    // Register available tools
+  private setupHandlers() {
+    // Register tool list handler
     this.server.setRequestHandler(ListToolsRequestSchema, async () => {
       return {
-        tools: [
-          {
-            name: 'get_muscle_readiness',
-            description: 'Get current muscle readiness percentages for recovery planning',
-            inputSchema: {
-              type: 'object',
-              properties: {},
-              required: [],
-            },
-          },
-          {
-            name: 'get_movements',
-            description: 'Get available Tonal movements/exercises, optionally filtered by muscle groups',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                muscleGroups: {
-                  type: 'array',
-                  items: {
-                    type: 'string'
-                  },
-                  description: 'Filter movements by muscle groups (e.g., ["Chest", "Back"] or ["Shoulders", "Triceps"])',
-                },
-              },
-              required: [],
-            },
-          },
-        ],
+        tools: allTools.map(tool => ({
+          name: tool.name,
+          description: tool.description,
+          inputSchema: tool.inputSchema,
+        })),
       };
     });
 
-    // Handle tool calls
+    // Register tool execution handler
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const { name, arguments: args } = request.params;
 
       try {
-        const client = await this.tonalService.getClient();
-
-        switch (name) {
-          case 'get_muscle_readiness':
-            return await getMuscleReadiness(client);
-
-          case 'get_movements':
-            return await getMovements(client, args?.muscleGroups as string[] | undefined);
-
-          default:
-            throw new Error(`Unknown tool: ${name}`);
+        const tool = toolsRegistry.get(name);
+        if (!tool) {
+          throw new Error(`Unknown tool: ${name}`);
         }
+
+        const client = await this.tonalService.getClient();
+        return await tool.handler(client, args);
       } catch (error) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Error: ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-        };
+        return handleToolError(error, name);
       }
     });
   }

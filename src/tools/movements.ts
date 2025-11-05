@@ -1,6 +1,9 @@
 import TonalClient from '@dlwiest/ts-tonal-client';
+import { validateStringArray } from '../utils/validation.js';
+import { MCPResponse } from '../types/index.js';
 
-export async function getMovements(client: TonalClient, muscleGroups?: string[]) {
+export async function getMovements(client: TonalClient, args?: { muscleGroups?: string[] }): Promise<MCPResponse> {
+  const muscleGroups = validateStringArray(args?.muscleGroups, 'muscleGroups');
   const movements = await client.getMovements();
   
   // Filter by muscle groups if specified

@@ -1,6 +1,7 @@
 import TonalClient from '@dlwiest/ts-tonal-client';
+import { MCPResponse } from '../types/index.js';
 
-export async function getMuscleReadiness(client: TonalClient) {
+export async function getMuscleReadiness(client: TonalClient): Promise<MCPResponse> {
   const readiness = await client.getMuscleReadiness();
   
   // Group muscles by body region
@@ -66,7 +67,10 @@ export async function getMuscleReadiness(client: TonalClient) {
     report += `\n## ⚠️ Recovery Needed\n`;
     report += `These muscle groups are below 60% readiness:\n`;
     needsRecovery.forEach(muscle => {
-      report += `- ${muscle}: ${readiness[muscle as keyof typeof readiness]}%\n`;
+      const percentage = readiness[muscle as keyof typeof readiness];
+      if (percentage !== undefined) {
+        report += `- ${muscle}: ${percentage}%\n`;
+      }
     });
     report += `\nConsider focusing on other muscle groups or taking a rest day.\n`;
   } else {

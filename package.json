@@ -1,6 +1,6 @@
 {
   "name": "@dlwiest/ts-tonal-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "MCP server for Tonal fitness data integration",
   "main": "dist/index.js",
   "type": "module",
