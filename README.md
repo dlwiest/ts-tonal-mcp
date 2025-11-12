@@ -57,6 +57,14 @@ Add to your Claude Desktop configuration (`~/Library/Application Support/Claude/
 }
 ```
 
+### Claude Code
+
+Add the server to Claude Code using the CLI:
+
+```bash
+claude mcp add tonal-mcp node /path/to/ts-tonal-mcp/dist/index.js -e TONAL_USERNAME=your_email -e TONAL_PASSWORD=your_password
+```
+
 ### Other LLM Tools (via HTTP Proxy)
 
 For tools that don't support stdio MCP servers directly (like AnythingLLM), use an HTTP proxy:
@@ -138,6 +146,7 @@ Thanks to the registry pattern, adding new tools is straightforward:
 This server uses the Model Context Protocol (MCP) over stdio for communication. It's compatible with:
 
 - ✅ Claude Desktop
+- ✅ Claude Code
 - ✅ Other MCP-compatible LLM tools
 - ✅ HTTP proxy for non-MCP tools
 
