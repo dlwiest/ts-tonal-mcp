@@ -4,7 +4,7 @@
 
 import { MCPToolDefinition, ToolCategory } from '../types/index.js';
 import { getMuscleReadiness } from './muscle-readiness.js';
-import { getMovements } from './movements.js';
+import { getMovements, searchMovements } from './movements.js';
 import { getRecentWorkouts } from './workouts.js';
 import { getUserStats, getRecentProgress } from './user-stats.js';
 import { listCustomWorkouts, deleteCustomWorkout, getCustomWorkoutDetails } from './custom-workouts.js';
@@ -121,6 +121,72 @@ const movementTools: MCPToolDefinition[] = [
       required: [],
     },
     handler: getMovements,
+  },
+  {
+    name: 'search_movements',
+    description: 'Advanced search for Tonal movements with multiple filter options including muscle groups, equipment, arm angle, body region, push/pull, skill level, and movement characteristics',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        muscleGroups: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Filter by muscle groups. Options: "Obliques", "Abs", "Shoulders", "Glutes", "Back", "Biceps", "Quads", "Triceps", "Chest", "Hamstrings", "Calves", "Forearms"',
+        },
+        equipment: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Filter by equipment and accessories. Off-machine options: "Bench", "Mat", "Roller". On-machine options: "Handles", "Rope", "StraightBar", "AnkleStraps"',
+        },
+        armAngle: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Filter by arm angle position on the machine. Options: "High", "Middle", "Low"',
+        },
+        bodyRegion: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Filter by body region. Options: "UpperBody", "LowerBody", "Core"',
+        },
+        pushPull: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Filter by push/pull pattern. Options: "Push", "Pull", "N/A"',
+        },
+        family: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Filter by movement family (e.g., ["Row", "Squat", "BenchPress", "ChestPress", "OverheadPress", "Lunge", "Plank"])',
+        },
+        onMachine: {
+          type: 'boolean',
+          description: 'Filter for on-machine movements only (true) or off-machine only (false)',
+        },
+        inFreeLift: {
+          type: 'boolean',
+          description: 'Filter for free lift movements (true) or non-free lift (false)',
+        },
+        skillLevel: {
+          type: 'array',
+          items: { type: 'number' },
+          description: 'Filter by skill level. Options: 0, 1, 2, 3 (higher numbers indicate more advanced movements)',
+        },
+        isBilateral: {
+          type: 'boolean',
+          description: 'Filter for bilateral movements (both sides at once)',
+        },
+        isAlternating: {
+          type: 'boolean',
+          description: 'Filter for alternating movements',
+        },
+        isTwoSided: {
+          type: 'boolean',
+          description: 'Filter for two-sided movements',
+        },
+      },
+      required: [],
+    },
+    handler: searchMovements,
   },
 ];
 
