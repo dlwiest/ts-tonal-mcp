@@ -5,9 +5,10 @@ A Model Context Protocol (MCP) server that provides LLMs with access to Tonal fi
 ## Features
 
 - 🏋️ **Workout History** - Access recent workout data and performance metrics
-- 💪 **Muscle Readiness** - Get recovery status for workout planning  
+- 💪 **Muscle Readiness** - Get recovery status for workout planning
 - 📊 **Fitness Statistics** - View lifetime stats, streaks, and progress trends
 - 🎯 **Movement Database** - Browse and filter available Tonal exercises
+- ✨ **Workout Creation** - Build custom workouts with exercises, sets, reps, and supersets
 - 🔧 **Extensible Architecture** - Easy to add new tools via registry pattern
 
 ## Installation
@@ -97,10 +98,12 @@ The server provides these tools for LLM interactions:
 |------|-------------|
 | `get_muscle_readiness` | Get current muscle readiness percentages for recovery planning |
 | `get_movements` | Browse Tonal movements/exercises, optionally filtered by muscle groups |
+| `search_movements` | Advanced search with 11+ filters (muscle groups, equipment, arm angle, skill level, etc.) |
 | `get_recent_workouts` | View recent workout history with summary statistics |
 | `get_user_stats` | Get comprehensive fitness statistics and current streak |
 | `get_recent_progress` | Analyze recent progress including workout frequency and trends |
 | `list_custom_workouts` | List all your custom workouts created on Tonal |
+| `create_workout` | Create a new custom workout with exercises, sets, reps/duration, and block grouping |
 | `delete_custom_workout` | Delete a custom workout by name |
 | `get_custom_workout_details` | Get detailed information about a custom workout including all sets |
 
@@ -108,14 +111,22 @@ The server provides these tools for LLM interactions:
 
 With the MCP server connected, you can ask Claude:
 
+**Fitness Insights:**
 - *"Should I work out today?"* → Gets muscle readiness data
-- *"What did I do this week?"* → Shows recent workout history  
+- *"What did I do this week?"* → Shows recent workout history
 - *"How's my progress lately?"* → Analyzes recent metrics and trends
-- *"What chest exercises are available?"* → Filters movements by muscle group
 - *"Am I staying consistent with my workouts?"* → Reviews frequency and streaks
+
+**Exercise Discovery:**
+- *"What chest exercises are available?"* → Filters movements by muscle group
+- *"Show me beginner-friendly leg exercises"* → Searches with skill level filter
+- *"Find exercises that use the bench"* → Filters by equipment
+
+**Workout Management:**
 - *"Show me my custom workouts"* → Lists all your created workouts
-- *"Delete my workout called 'Old Routine'"* → Removes a specific custom workout
+- *"Create a push/pull workout with warmup and cooldown"* → Builds a structured workout
 - *"Show me details for 'Upper Body Blast'"* → View full workout structure with all sets
+- *"Delete my workout called 'Old Routine'"* → Removes a specific custom workout
 
 ## Development
 
