@@ -7,7 +7,7 @@ import { getMuscleReadiness } from './muscle-readiness.js';
 import { getMovements, searchMovements } from './movements.js';
 import { getRecentWorkouts } from './workouts.js';
 import { getUserStats, getRecentProgress } from './user-stats.js';
-import { listCustomWorkouts, deleteCustomWorkout, getCustomWorkoutDetails } from './custom-workouts.js';
+import { listCustomWorkouts, deleteCustomWorkout, getCustomWorkoutDetails, createWorkout } from './custom-workouts.js';
 
 // Fitness/Health Tools
 const fitnessTools: MCPToolDefinition[] = [
@@ -99,6 +99,63 @@ const workoutTools: MCPToolDefinition[] = [
       required: ['workoutName'],
     },
     handler: getCustomWorkoutDetails,
+  },
+  {
+    name: 'create_workout',
+    description: 'Create a new custom workout with specified exercises, sets, and reps. IMPORTANT: Use the "block" parameter to group exercises that should appear together (warmups, cooldowns, supersets, etc.). For example: all warmup exercises with block: 1, first superset with block: 2, second superset with block: 3, cooldown exercises with block: 4. Without a block number, each exercise gets its own separate block.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        title: {
+          type: 'string',
+          description: 'The title/name of the workout',
+        },
+        exercises: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              movementName: {
+                type: 'string',
+                description: 'The exact name of the movement/exercise (use search_movements to find valid names)',
+              },
+              sets: {
+                type: 'number',
+                description: 'Number of sets for this exercise',
+              },
+              reps: {
+                type: 'number',
+                description: 'Number of reps per set (for reps-based exercises like Bench Press, Squat, etc.)',
+              },
+              duration: {
+                type: 'number',
+                description: 'Duration in seconds per set (for duration-based exercises like Jumping Jack, Plank, etc.)',
+              },
+              weight: {
+                type: 'number',
+                description: 'Optional: Weight percentage (0-100) for this exercise',
+              },
+              isWarmup: {
+                type: 'boolean',
+                description: 'Optional: Mark this exercise as a warmup',
+              },
+              block: {
+                type: 'number',
+                description: 'Optional: Block number to group exercises together. Exercises with the same block number will be grouped into a single block on the Tonal. Use for: warmups (block: 1), supersets (block: 2, 3, etc.), cooldowns (block: 99). Without a block number, each exercise appears in its own separate block.',
+              },
+            },
+            required: ['movementName', 'sets'],
+          },
+          description: 'Array of exercises to include in the workout',
+        },
+        description: {
+          type: 'string',
+          description: 'Optional description for the workout',
+        },
+      },
+      required: ['title', 'exercises'],
+    },
+    handler: createWorkout,
   },
 ];
 
