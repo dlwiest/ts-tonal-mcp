@@ -8,6 +8,7 @@ import { getMovements, searchMovements } from './movements.js';
 import { getRecentWorkouts } from './workouts.js';
 import { getUserStats, getRecentProgress } from './user-stats.js';
 import { listCustomWorkouts, deleteCustomWorkout, getCustomWorkoutDetails, createWorkout } from './custom-workouts.js';
+import { getWorkoutForEditing, updateWorkout } from './workout-editing.js';
 
 // Fitness/Health Tools
 const fitnessTools: MCPToolDefinition[] = [
@@ -156,6 +157,78 @@ const workoutTools: MCPToolDefinition[] = [
       required: ['title', 'exercises'],
     },
     handler: createWorkout,
+  },
+  {
+    name: 'get_workout_for_editing',
+    description: 'Get a workout in an editable format with high-level exercise structure. Use this before making modifications to a workout.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        workoutName: {
+          type: 'string',
+          description: 'The exact name of the workout to fetch for editing',
+        },
+      },
+      required: ['workoutName'],
+    },
+    handler: getWorkoutForEditing,
+  },
+  {
+    name: 'update_workout',
+    description: 'Update an existing workout with modified exercises. Accepts complete exercise structure with any changes (add/remove/modify exercises, change sets/reps/weight). IMPORTANT: Use the same "block" number for exercises that should alternate (supersets). For example: block: 1 for both shoulder press and bench press = they alternate. Different block numbers = exercises done separately. Returns fresh workout state after saving.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        workoutName: {
+          type: 'string',
+          description: 'The name of the workout to update',
+        },
+        title: {
+          type: 'string',
+          description: 'Optional: New title for the workout',
+        },
+        description: {
+          type: 'string',
+          description: 'Optional: New description for the workout',
+        },
+        exercises: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              movementName: {
+                type: 'string',
+                description: 'The exact name of the movement/exercise',
+              },
+              sets: {
+                type: 'number',
+                description: 'Number of sets for this exercise',
+              },
+              reps: {
+                type: 'number',
+                description: 'Number of reps per set (for reps-based exercises)',
+              },
+              duration: {
+                type: 'number',
+                description: 'Duration in seconds per set (for duration-based exercises)',
+              },
+              weight: {
+                type: 'number',
+                description: 'Optional: Weight percentage (0-100) for this exercise',
+              },
+              block: {
+                type: 'number',
+                description: 'Optional: Block number to group exercises. Exercises with the same block number will alternate (supersets). Use for: warmups (block: 1), supersets (block: 2, 3, etc.), cooldowns (block: 99). Without a block number, each exercise appears in its own separate block.',
+              },
+            },
+            required: ['movementName', 'sets'],
+          },
+          description: 'Complete array of exercises for the updated workout',
+        },
+      },
+      required: ['workoutName', 'exercises'],
+    },
+    handler: updateWorkout,
   },
 ];
 

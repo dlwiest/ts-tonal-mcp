@@ -33,3 +33,27 @@ export interface ToolCategory {
   description: string;
   tools: MCPToolDefinition[];
 }
+
+// Workout-related types
+export interface ExerciseInput {
+  movementName: string;
+  sets: number;
+  reps?: number; // For reps-based movements
+  duration?: number; // For duration-based movements (in seconds)
+  weight?: number; // Optional weight percentage (0-100)
+  isWarmup?: boolean;
+  block?: number; // Group exercises into the same block (same block = exercises alternate)
+}
+
+export interface CreateWorkoutInput {
+  title: string;
+  exercises: ExerciseInput[];
+  description?: string;
+}
+
+export interface UpdateWorkoutInput {
+  workoutName: string;
+  title?: string;
+  description?: string;
+  exercises: ExerciseInput[];
+}
