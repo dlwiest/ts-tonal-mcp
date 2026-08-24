@@ -9,6 +9,8 @@ import { getRecentWorkouts } from './workouts.js';
 import { getUserStats, getRecentProgress } from './user-stats.js';
 import { listCustomWorkouts, deleteCustomWorkout, getCustomWorkoutDetails, createWorkout } from './custom-workouts.js';
 import { getWorkoutForEditing, updateWorkout } from './workout-editing.js';
+import { getStrengthScore } from './strength-score.js';
+import { estimateWorkoutDuration } from './workout-duration.js';
 
 const setDetailsSchema = {
   type: 'array',
@@ -47,6 +49,50 @@ const setDetailsSchema = {
       },
     },
   },
+};
+
+// Exercise item schema shared by estimate_workout_duration, mirroring create_workout's shape.
+const exerciseItemSchema = {
+  type: 'object',
+  description: 'Each exercise requires movementName and either sets for uniform programming or a non-empty setDetails array for per-set programming. If both are supplied, sets must equal the setDetails length; setDetails is authoritative.',
+  properties: {
+    movementName: {
+      type: 'string',
+      description: 'The exact name of the movement/exercise (use search_movements to find valid names)',
+    },
+    sets: {
+      type: 'integer',
+      minimum: 1,
+      description: 'Uniform set count used only when setDetails is omitted. If both are supplied, this must equal the setDetails length.',
+    },
+    reps: {
+      type: 'number',
+      description: 'Number of reps per set (for reps-based exercises like Bench Press, Squat, etc.)',
+    },
+    duration: {
+      type: 'number',
+      description: 'Duration in seconds per set (for duration-based exercises like Jumping Jack, Plank, etc.)',
+    },
+    weight: {
+      type: 'number',
+      description: 'Optional: Weight percentage (0-100) for this exercise',
+    },
+    setDetails: setDetailsSchema,
+    isWarmup: {
+      type: 'boolean',
+      description: 'Optional: Mark this exercise as a warmup',
+    },
+    block: {
+      type: 'integer',
+      minimum: 0,
+      description: 'Optional Tonal block number. Tonal blocks are 1-based, but a supplied 0 is accepted and normalized to 1. Equal block values group exercises into a superset. If some exercises include block and others omit it, every block is renumbered by first appearance; otherwise gaps and relative order are preserved.',
+    },
+  },
+  required: ['movementName'],
+  anyOf: [
+    { required: ['sets'] },
+    { required: ['setDetails'] },
+  ],
 };
 
 // Shared user parameter added to every tool so callers can specify which Tonal account to use.
@@ -100,6 +146,20 @@ const fitnessTools: MCPToolDefinition[] = [
       destructiveHint: false,
     },
     handler: getRecentProgress,
+  },
+  {
+    name: 'get_strength_score',
+    description: "Get Tonal's strength-related goal metrics (e.g. Strength Sets, Functional Strength Score), matched by name rather than hardcoded ID. Returns current week actual/target/range plus a recent trend.",
+    inputSchema: {
+      type: 'object',
+      properties: { ...userProperty },
+      required: [],
+    },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+    },
+    handler: getStrengthScore,
   },
 ];
 
@@ -346,6 +406,27 @@ const workoutTools: MCPToolDefinition[] = [
       destructiveHint: true,
     },
     handler: updateWorkout,
+  },
+  {
+    name: 'estimate_workout_duration',
+    description: 'Estimate how long a prescribed workout will take, without creating or modifying anything on Tonal. Accepts the same exercises shape as create_workout.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        exercises: {
+          type: 'array',
+          items: exerciseItemSchema,
+          description: 'Array of exercises to estimate duration for',
+        },
+        ...userProperty,
+      },
+      required: ['exercises'],
+    },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+    },
+    handler: estimateWorkoutDuration,
   },
 ];
 
