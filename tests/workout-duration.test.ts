@@ -66,3 +66,26 @@ test('surfaces an unknown movement as a tool error rather than throwing', async 
 
   assert.equal(response.isError, true);
 });
+
+test('surfaces a client-level estimateWorkoutDuration failure as isError, not swallowed', async () => {
+  // This is the failure mode the estimateWorkoutDuration client bug actually produced in
+  // practice before the patch-package fix (HTTP 400 from /user-workouts/estimate). Even with
+  // the client patched, the tool must still handle the client method throwing -- for whatever
+  // reason -- by surfacing it as a proper MCP tool error with the real message intact, not
+  // swallowing it or miscategorizing it as something else (e.g. a validation error).
+  const client = tonalClient({
+    getMovements: async () => [BENCH_MOVEMENT],
+    estimateWorkoutDuration: async () => {
+      throw new Error('HTTP 400: json: cannot unmarshal object into Go value of type content.SetList');
+    },
+  });
+
+  const response = await estimateWorkoutDuration(client, {
+    exercises: [{ movementName: 'Bench Press', sets: 3, reps: 10 }],
+  });
+
+  assert.equal(response.isError, true);
+  const text = reportText(response);
+  assert.match(text, /estimate_workout_duration/);
+  assert.match(text, /cannot unmarshal object into Go value of type content\.SetList/);
+});
