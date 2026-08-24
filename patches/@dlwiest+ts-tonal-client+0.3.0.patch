@@ -1,0 +1,26 @@
+diff --git a/node_modules/@dlwiest/ts-tonal-client/dist/index.cjs b/node_modules/@dlwiest/ts-tonal-client/dist/index.cjs
+index 1060d07..0263b79 100644
+--- a/node_modules/@dlwiest/ts-tonal-client/dist/index.cjs
++++ b/node_modules/@dlwiest/ts-tonal-client/dist/index.cjs
+@@ -301,7 +301,7 @@ class WorkoutService {
+         }
+         return this.httpClient.request('/user-workouts/estimate', {
+             method: 'POST',
+-            body: JSON.stringify({ sets }),
++            body: JSON.stringify(sets),
+         });
+     }
+     async createWorkout(workoutData) {
+diff --git a/node_modules/@dlwiest/ts-tonal-client/dist/index.esm.js b/node_modules/@dlwiest/ts-tonal-client/dist/index.esm.js
+index 7f7d199..04e5a1b 100644
+--- a/node_modules/@dlwiest/ts-tonal-client/dist/index.esm.js
++++ b/node_modules/@dlwiest/ts-tonal-client/dist/index.esm.js
+@@ -297,7 +297,7 @@ class WorkoutService {
+         }
+         return this.httpClient.request('/user-workouts/estimate', {
+             method: 'POST',
+-            body: JSON.stringify({ sets }),
++            body: JSON.stringify(sets),
+         });
+     }
+     async createWorkout(workoutData) {

@@ -1,27 +1,32 @@
 import TonalClient from '@dlwiest/ts-tonal-client';
 
 export class TonalService {
-  private client: TonalClient | null = null;
+  private clients: Map<string, TonalClient> = new Map();
 
-  async getClient(): Promise<TonalClient> {
-    if (this.client) {
-      return this.client;
+  async getClient(user: string = 'carlos'): Promise<TonalClient> {
+    const cached = this.clients.get(user);
+    if (cached) {
+      return cached;
     }
 
-    const username = process.env.TONAL_USERNAME;
-    const password = process.env.TONAL_PASSWORD;
+    const userKey = user.toUpperCase();
+    const username = process.env[`TONAL_USERNAME_${userKey}`];
+    const password = process.env[`TONAL_PASSWORD_${userKey}`];
 
     if (!username || !password) {
-      throw new Error('TONAL_USERNAME and TONAL_PASSWORD environment variables are required');
+      throw new Error(
+        `TONAL_USERNAME_${userKey} and TONAL_PASSWORD_${userKey} environment variables are required for user "${user}"`
+      );
     }
 
-    console.error('Initializing Tonal client...');
-    this.client = await TonalClient.create({
+    console.error(`Initializing Tonal client for user "${user}"...`);
+    const client = await TonalClient.create({
       username,
       password,
     });
-    console.error('Tonal client initialized successfully');
+    console.error(`Tonal client initialized successfully for user "${user}"`);
 
-    return this.client;
+    this.clients.set(user, client);
+    return client;
   }
 }
