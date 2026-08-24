@@ -65,7 +65,8 @@ export class TonalMCPServer {
           throw new Error(`Unknown tool: ${name}`);
         }
 
-        const client = await this.tonalService.getClient();
+        const user = typeof args?.user === 'string' ? args.user : 'carlos';
+        const client = await this.tonalService.getClient(user);
         return await tool.handler(client, args);
       } catch (error) {
         return handleToolError(error, name);

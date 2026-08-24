@@ -24,18 +24,28 @@ npm run build
 
 ## Configuration
 
-The server requires your Tonal credentials as environment variables:
+The server supports multiple Tonal accounts. Credentials are specified per-user using the pattern `TONAL_USERNAME_<USER>` / `TONAL_PASSWORD_<USER>` where `<USER>` is the uppercase account name (e.g. `CARLOS`, `DANIEL`).
 
 ```bash
-export TONAL_USERNAME="your_email@example.com"
-export TONAL_PASSWORD="your_password"
+# Primary account (default when no user is specified)
+export TONAL_USERNAME_CARLOS="carlos@example.com"
+export TONAL_PASSWORD_CARLOS="carlos_password"
+
+# Additional accounts
+export TONAL_USERNAME_DANIEL="daniel@example.com"
+export TONAL_PASSWORD_DANIEL="daniel_password"
 ```
 
 Or create a `.env` file:
 ```env
-TONAL_USERNAME=your_email@example.com
-TONAL_PASSWORD=your_password
+TONAL_USERNAME_CARLOS=carlos@example.com
+TONAL_PASSWORD_CARLOS=carlos_password
+
+TONAL_USERNAME_DANIEL=daniel@example.com
+TONAL_PASSWORD_DANIEL=daniel_password
 ```
+
+> **Migration note:** If you were previously using `TONAL_USERNAME` / `TONAL_PASSWORD`, rename them to `TONAL_USERNAME_CARLOS` / `TONAL_PASSWORD_CARLOS` before restarting the server.
 
 ## Usage
 
@@ -50,8 +60,10 @@ Add to your Claude Desktop configuration (`~/Library/Application Support/Claude/
       "command": "node",
       "args": ["/path/to/ts-tonal-mcp/dist/index.js"],
       "env": {
-        "TONAL_USERNAME": "your_email@example.com",
-        "TONAL_PASSWORD": "your_password"
+        "TONAL_USERNAME_CARLOS": "carlos@example.com",
+        "TONAL_PASSWORD_CARLOS": "carlos_password",
+        "TONAL_USERNAME_DANIEL": "daniel@example.com",
+        "TONAL_PASSWORD_DANIEL": "daniel_password"
       }
     }
   }
@@ -63,7 +75,11 @@ Add to your Claude Desktop configuration (`~/Library/Application Support/Claude/
 Add the server to Claude Code using the CLI:
 
 ```bash
-claude mcp add tonal-mcp node /path/to/ts-tonal-mcp/dist/index.js -e TONAL_USERNAME=your_email -e TONAL_PASSWORD=your_password
+claude mcp add tonal-mcp node /path/to/ts-tonal-mcp/dist/index.js \
+  -e TONAL_USERNAME_CARLOS=carlos@example.com \
+  -e TONAL_PASSWORD_CARLOS=carlos_password \
+  -e TONAL_USERNAME_DANIEL=daniel@example.com \
+  -e TONAL_PASSWORD_DANIEL=daniel_password
 ```
 
 ### Hermes Agent

@@ -49,6 +49,14 @@ const setDetailsSchema = {
   },
 };
 
+// Shared user parameter added to every tool so callers can specify which Tonal account to use.
+const userProperty = {
+  user: {
+    type: 'string',
+    description: "Tonal account user (e.g. 'carlos', 'daniel'). Defaults to 'carlos'.",
+  },
+};
+
 // Fitness/Health Tools
 const fitnessTools: MCPToolDefinition[] = [
   {
@@ -56,7 +64,7 @@ const fitnessTools: MCPToolDefinition[] = [
     description: 'Get current muscle readiness percentages for recovery planning',
     inputSchema: {
       type: 'object',
-      properties: {},
+      properties: { ...userProperty },
       required: [],
     },
     annotations: {
@@ -70,7 +78,7 @@ const fitnessTools: MCPToolDefinition[] = [
     description: 'Get comprehensive user fitness statistics and current streak',
     inputSchema: {
       type: 'object',
-      properties: {},
+      properties: { ...userProperty },
       required: [],
     },
     annotations: {
@@ -84,7 +92,7 @@ const fitnessTools: MCPToolDefinition[] = [
     description: 'Get recent progress analysis including workout frequency and trends',
     inputSchema: {
       type: 'object',
-      properties: {},
+      properties: { ...userProperty },
       required: [],
     },
     annotations: {
@@ -107,6 +115,7 @@ const workoutTools: MCPToolDefinition[] = [
           type: 'number',
           description: 'Number of recent workouts to retrieve (default: 10)',
         },
+        ...userProperty,
       },
       required: [],
     },
@@ -121,7 +130,7 @@ const workoutTools: MCPToolDefinition[] = [
     description: 'List up to 100 custom workouts created on Tonal and report when additional workouts may exist',
     inputSchema: {
       type: 'object',
-      properties: {},
+      properties: { ...userProperty },
       required: [],
     },
     annotations: {
@@ -144,6 +153,7 @@ const workoutTools: MCPToolDefinition[] = [
           type: 'boolean',
           description: 'Must be true to permanently delete the resolved workout; otherwise the tool returns a deletion preview',
         },
+        ...userProperty,
       },
       required: ['workoutName', 'confirm'],
     },
@@ -163,6 +173,7 @@ const workoutTools: MCPToolDefinition[] = [
           type: 'string',
           description: 'The exact name of the workout to view',
         },
+        ...userProperty,
       },
       required: ['workoutName'],
     },
@@ -232,6 +243,7 @@ const workoutTools: MCPToolDefinition[] = [
           type: 'string',
           description: 'Optional description for the workout',
         },
+        ...userProperty,
       },
       required: ['title', 'exercises'],
     },
@@ -251,6 +263,7 @@ const workoutTools: MCPToolDefinition[] = [
           type: 'string',
           description: 'The exact name of the workout to fetch for editing',
         },
+        ...userProperty,
       },
       required: ['workoutName'],
     },
@@ -324,6 +337,7 @@ const workoutTools: MCPToolDefinition[] = [
           },
           description: 'Complete array of exercises for the updated workout',
         },
+        ...userProperty,
       },
       required: ['workoutName', 'exercises'],
     },
@@ -350,6 +364,7 @@ const movementTools: MCPToolDefinition[] = [
           },
           description: 'Filter movements by muscle groups (e.g., ["Chest", "Back"] or ["Shoulders", "Triceps"])',
         },
+        ...userProperty,
       },
       required: [],
     },
@@ -420,6 +435,7 @@ const movementTools: MCPToolDefinition[] = [
           type: 'boolean',
           description: 'Filter for two-sided movements',
         },
+        ...userProperty,
       },
       required: [],
     },
