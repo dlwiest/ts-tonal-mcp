@@ -49,6 +49,9 @@ test('matches goal metrics by name, not a hardcoded id', async () => {
     getGoalMetrics: async () => goalMetrics,
     getTargetScores: async () => targetScores,
     getMetricScores: async () => metricScores,
+    getDailyMetrics: async () => {
+      throw new Error('unavailable in this test; exercised separately below');
+    },
   });
 
   const text = reportText(await getStrengthScore(client));
@@ -86,8 +89,110 @@ test('handles a metric with no score data yet without throwing', async () => {
     ],
     getTargetScores: async () => ({}) as TonalTargetScoresResponse,
     getMetricScores: async () => ({}) as TonalMetricScoresResponse,
+    getDailyMetrics: async () => [{ date: '2026-08-24' }],
   });
 
   const text = reportText(await getStrengthScore(client));
   assert.match(text, /No score data available/);
+});
+
+// --- ARIIA M1: current week must come from today's real date, not max(weekNumber) ---
+
+test('reports the real current week even when it has no actual score yet', async () => {
+  const goalMetrics: TonalGoalMetric[] = [
+    { id: 'm-strength-sets', name: 'Strength Sets', goalId: 'g1', description: '' },
+  ];
+  // getDailyMetrics says today is 2026-08-24 (a Monday) -> real current week is 202635.
+  const targetScores: TonalTargetScoresResponse = {
+    'm-strength-sets': [
+      { userId: 'u1', weekNumber: 202635, metricId: 'm-strength-sets', target: 13, lowRange: 11, highRange: 15 },
+      { userId: 'u1', weekNumber: 202634, metricId: 'm-strength-sets', target: 12, lowRange: 10, highRange: 13 },
+    ],
+  };
+  const metricScores: TonalMetricScoresResponse = {
+    'm-strength-sets': [
+      // Week 202635 (this week) has no actual score yet -- only the completed prior week does.
+      { userId: 'u1', weekNumber: 202634, metricId: 'm-strength-sets', score: 15.75 },
+    ],
+  };
+
+  const client = tonalClient({
+    getGoalMetrics: async () => goalMetrics,
+    getTargetScores: async () => targetScores,
+    getMetricScores: async () => metricScores,
+    getDailyMetrics: async () => [{ date: '2026-08-24' }],
+  });
+
+  const text = reportText(await getStrengthScore(client));
+  assert.match(text, /Current Week \(202635\)/);
+  assert.match(text, /Actual: N\/A/);
+  assert.match(text, /Target: 13\.00/);
+});
+
+test('does not report a pre-populated future week as current (ARIIA M1)', async () => {
+  const goalMetrics: TonalGoalMetric[] = [
+    { id: 'm-strength-sets', name: 'Strength Sets', goalId: 'g1', description: '' },
+  ];
+  // Today is 2026-08-24 -> real current week is 202635. Tonal has already pre-populated a
+  // target for a *future* week (202636) with no history yet. The old max(weekNumber) logic
+  // would have silently reported 202636 as "current" with a blank actual score, indistinguishable
+  // from a normal in-progress week. It must not do that.
+  const targetScores: TonalTargetScoresResponse = {
+    'm-strength-sets': [
+      { userId: 'u1', weekNumber: 202636, metricId: 'm-strength-sets', target: 14, lowRange: 12, highRange: 16 },
+      { userId: 'u1', weekNumber: 202634, metricId: 'm-strength-sets', target: 12, lowRange: 10, highRange: 13 },
+    ],
+  };
+  const metricScores: TonalMetricScoresResponse = {
+    'm-strength-sets': [
+      { userId: 'u1', weekNumber: 202634, metricId: 'm-strength-sets', score: 15.75 },
+    ],
+  };
+
+  const client = tonalClient({
+    getGoalMetrics: async () => goalMetrics,
+    getTargetScores: async () => targetScores,
+    getMetricScores: async () => metricScores,
+    getDailyMetrics: async () => [{ date: '2026-08-24' }],
+  });
+
+  const text = reportText(await getStrengthScore(client));
+  assert.doesNotMatch(text, /Current Week \(202636\)/);
+  assert.doesNotMatch(text, /target 14\.00/);
+  // Falls back to the most recent week at or before the real current week (202634), clearly
+  // labeled as a fallback rather than silently implied to be "this week."
+  assert.match(text, /Most Recent Available Week \(202634\)/);
+  assert.match(text, /current week \(202635\) has no data yet/);
+  assert.match(text, /Actual: 15\.75/);
+  // The future pre-populated week must not leak into the trend either.
+  assert.doesNotMatch(text, /Week 202636/);
+});
+
+test('labels the fallback distinctly when the real current week cannot be determined at all', async () => {
+  const goalMetrics: TonalGoalMetric[] = [
+    { id: 'm-strength-sets', name: 'Strength Sets', goalId: 'g1', description: '' },
+  ];
+  const targetScores: TonalTargetScoresResponse = {
+    'm-strength-sets': [
+      { userId: 'u1', weekNumber: 202634, metricId: 'm-strength-sets', target: 12, lowRange: 10, highRange: 13 },
+    ],
+  };
+  const metricScores: TonalMetricScoresResponse = {
+    'm-strength-sets': [
+      { userId: 'u1', weekNumber: 202634, metricId: 'm-strength-sets', score: 15.75 },
+    ],
+  };
+
+  const client = tonalClient({
+    getGoalMetrics: async () => goalMetrics,
+    getTargetScores: async () => targetScores,
+    getMetricScores: async () => metricScores,
+    getDailyMetrics: async () => {
+      throw new Error('network error');
+    },
+  });
+
+  const text = reportText(await getStrengthScore(client));
+  assert.match(text, /Most Recent Available Week \(202634\)/);
+  assert.match(text, /today's actual current week could not be determined/);
 });
