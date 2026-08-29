@@ -9,8 +9,10 @@ import { getRecentWorkouts } from './workouts.js';
 import { getUserStats, getRecentProgress } from './user-stats.js';
 import { listCustomWorkouts, deleteCustomWorkout, getCustomWorkoutDetails, createWorkout } from './custom-workouts.js';
 import { getWorkoutForEditing, updateWorkout } from './workout-editing.js';
-import { getStrengthScore } from './strength-score.js';
+import { getStrengthGoalProgress } from './strength-goal-progress.js';
 import { estimateWorkoutDuration } from './workout-duration.js';
+import { getCurrentStrengthScores, getStrengthScoreHistory } from './strength-scores.js';
+import { getTonalAchievements } from './achievements.js';
 
 const setDetailsSchema = {
   type: 'array',
@@ -148,8 +150,8 @@ const fitnessTools: MCPToolDefinition[] = [
     handler: getRecentProgress,
   },
   {
-    name: 'get_strength_score',
-    description: "Get Tonal's strength-related goal metrics (e.g. Strength Sets, Functional Strength Score), matched by name rather than hardcoded ID. Returns current week actual/target/range plus a recent trend.",
+    name: 'get_strength_goal_progress',
+    description: "Get Tonal's weekly strength-related GOAL PROGRESS metrics (e.g. Strength Sets, Functional Strength Score), matched by name rather than hardcoded ID. Returns current week actual/target/range plus a recent trend. This is NOT the app's headline per-region Strength Score -- for that, use get_current_strength_scores. (Renamed from get_strength_score, which was misleading about what it returns.)",
     inputSchema: {
       type: 'object',
       properties: { ...userProperty },
@@ -159,7 +161,55 @@ const fitnessTools: MCPToolDefinition[] = [
       readOnlyHint: true,
       destructiveHint: false,
     },
-    handler: getStrengthScore,
+    handler: getStrengthGoalProgress,
+  },
+  {
+    name: 'get_current_strength_scores',
+    description: "Get Tonal's headline per-region Strength Score (Upper Body, Core, Lower Body, and a synthesized Overall row) -- the score shown in the Tonal app. Distinct from get_strength_goal_progress, which covers weekly goal-progress metrics instead.",
+    inputSchema: {
+      type: 'object',
+      properties: { ...userProperty },
+      required: [],
+    },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+    },
+    handler: getCurrentStrengthScores,
+  },
+  {
+    name: 'get_strength_score_history',
+    description: "Get per-workout Strength Score history (upper/core/lower/overall) across the account. `days` is a calendar-day lookback (not a row count) -- a window shorter than the gap since the last scored workout returns an empty result, not an error. Defaults to 'all' (derived from account creation date) rather than a short window, since real training gaps of several weeks are common and a small default would misread them as \"no data\".",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        days: {
+          type: ['number', 'string'],
+          description: "Calendar-day lookback window, or 'all' (default) to derive the window from the account's creation date. Pass an explicit number (e.g. 365) if 'all' fails because the account's creation date is missing, unparseable, or future-dated.",
+        },
+        ...userProperty,
+      },
+      required: [],
+    },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+    },
+    handler: getStrengthScoreHistory,
+  },
+  {
+    name: 'get_tonal_achievements',
+    description: 'Get Tonal achievement progress (total earned, next milestones) and the full earned-achievement history, most-recent-first. Compacted view intended for a future motivational dashboard tile.',
+    inputSchema: {
+      type: 'object',
+      properties: { ...userProperty },
+      required: [],
+    },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+    },
+    handler: getTonalAchievements,
   },
 ];
 

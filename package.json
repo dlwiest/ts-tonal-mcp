@@ -9,8 +9,7 @@
     "dev": "tsc --watch",
     "start": "node dist/index.js",
     "test": "tsx --test tests/*.test.ts",
-    "typecheck": "tsc --noEmit",
-    "postinstall": "patch-package"
+    "typecheck": "tsc --noEmit"
   },
   "repository": {
     "type": "git",
@@ -26,12 +25,11 @@
   "author": "dlwiest",
   "license": "ISC",
   "dependencies": {
-    "@dlwiest/ts-tonal-client": "^0.3.0",
+    "@dlwiest/ts-tonal-client": "^0.4.0",
     "@modelcontextprotocol/sdk": "^1.30.0"
   },
   "devDependencies": {
     "@types/node": "^20.14.8",
-    "patch-package": "^8.0.1",
     "tsx": "^4.20.6",
     "typescript": "^5.5.4"
   }

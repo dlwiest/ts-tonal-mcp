@@ -116,6 +116,11 @@ The server provides these tools for LLM interactions:
 | `get_custom_workout_details` | Get detailed information about a custom workout including all sets |
 | `get_workout_for_editing` | Get the complete editable structure of an existing workout |
 | `update_workout` | Update an existing workout by replacing its full set list |
+| `estimate_workout_duration` | Estimate how long a prescribed workout will take, without creating or modifying anything |
+| `get_strength_goal_progress` | Get weekly strength-related goal-progress metrics (Strength Sets, Functional Strength Score). **Not** the app's headline Strength Score -- see `get_current_strength_scores`. (Renamed from `get_strength_score`.) |
+| `get_current_strength_scores` | Get Tonal's headline per-region Strength Score (Upper Body, Core, Lower Body, Overall) -- the score shown in the app |
+| `get_strength_score_history` | Get per-workout Strength Score history; `days` is a calendar-day lookback (default `'all'`), not a row count |
+| `get_tonal_achievements` | Get achievement progress, next milestones, and full earned-achievement history (most-recent-first) |
 
 ### Per-set programming
 

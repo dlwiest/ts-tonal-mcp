@@ -2,9 +2,46 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { toolsRegistry } from '../src/tools/registry.js';
 
-test('get_strength_score is registered as read-only and accepts user', () => {
-  const tool = toolsRegistry.get('get_strength_score');
-  assert.ok(tool, 'get_strength_score must be registered');
+test('get_strength_score is renamed to get_strength_goal_progress (naming collision fix)', () => {
+  assert.equal(
+    toolsRegistry.get('get_strength_score'),
+    undefined,
+    'the old, misleading name must no longer be registered'
+  );
+
+  const tool = toolsRegistry.get('get_strength_goal_progress');
+  assert.ok(tool, 'get_strength_goal_progress must be registered');
+  assert.equal(tool!.annotations?.readOnlyHint, true);
+  assert.equal(tool!.annotations?.destructiveHint, false);
+  assert.ok('user' in tool!.inputSchema.properties);
+  assert.deepEqual(tool!.inputSchema.required, []);
+  assert.match(tool!.description, /NOT the app's headline/i);
+  assert.match(tool!.description, /get_current_strength_scores/);
+});
+
+test('get_current_strength_scores is registered as read-only and accepts user', () => {
+  const tool = toolsRegistry.get('get_current_strength_scores');
+  assert.ok(tool, 'get_current_strength_scores must be registered');
+  assert.equal(tool!.annotations?.readOnlyHint, true);
+  assert.equal(tool!.annotations?.destructiveHint, false);
+  assert.ok('user' in tool!.inputSchema.properties);
+  assert.deepEqual(tool!.inputSchema.required, []);
+});
+
+test('get_strength_score_history is registered read-only, accepts user and optional days', () => {
+  const tool = toolsRegistry.get('get_strength_score_history');
+  assert.ok(tool, 'get_strength_score_history must be registered');
+  assert.equal(tool!.annotations?.readOnlyHint, true);
+  assert.equal(tool!.annotations?.destructiveHint, false);
+  assert.ok('user' in tool!.inputSchema.properties);
+  assert.ok('days' in tool!.inputSchema.properties);
+  assert.deepEqual(tool!.inputSchema.required, []);
+  assert.match(tool!.description, /calendar-day lookback/i);
+});
+
+test('get_tonal_achievements is registered as read-only and accepts user', () => {
+  const tool = toolsRegistry.get('get_tonal_achievements');
+  assert.ok(tool, 'get_tonal_achievements must be registered');
   assert.equal(tool!.annotations?.readOnlyHint, true);
   assert.equal(tool!.annotations?.destructiveHint, false);
   assert.ok('user' in tool!.inputSchema.properties);

@@ -3,18 +3,22 @@ import test from 'node:test';
 import TonalClient from '@dlwiest/ts-tonal-client';
 
 /**
- * Regression test for the patch-package fix in patches/@dlwiest+ts-tonal-client+0.3.0.patch.
+ * Regression test for the estimateWorkoutDuration request-body fix, now shipped natively
+ * upstream as of @dlwiest/ts-tonal-client@0.4.0.
  *
- * The installed @dlwiest/ts-tonal-client@0.3.0 has a bug: estimateWorkoutDuration() POSTs
- * `{ sets }` to /user-workouts/estimate, but Tonal's live API expects the raw sets array as
- * the body and returns HTTP 400 ("json: cannot unmarshal object into Go value of type
- * content.SetList") otherwise. The patch changes that call site to send the raw array.
+ * @dlwiest/ts-tonal-client@0.3.0 had a bug: estimateWorkoutDuration() POSTed `{ sets }` to
+ * /user-workouts/estimate, but Tonal's live API expects the raw sets array as the body and
+ * returned HTTP 400 ("json: cannot unmarshal object into Go value of type content.SetList")
+ * otherwise. We previously carried a patch-package fix
+ * (patches/@dlwiest+ts-tonal-client+0.3.0.patch) for this. Independently confirmed against the
+ * raw (unpatched) 0.4.0 tarball from the npm registry -- not just the locally patched
+ * node_modules copy -- that dist/index.esm.js now sends `JSON.stringify(sets)` natively, so the
+ * patch was deleted and patch-package removed from postinstall/devDependencies.
  *
- * This test exercises the actual installed (patched) client end-to-end via a mocked fetch,
- * so it fails loudly if a future `npm install` / client version bump ever silently drops the
- * patch (e.g. the patch no longer applies cleanly and postinstall is run non-strictly).
+ * This test exercises the actual installed (now unpatched) 0.4.0+ client end-to-end via a
+ * mocked fetch, so it fails loudly if a future client version ever regresses this behavior.
  */
-test('installed ts-tonal-client sends the raw sets array to /user-workouts/estimate', async () => {
+test('installed ts-tonal-client 0.4.0+ sends the raw sets array to /user-workouts/estimate natively (no patch applied)', async () => {
   const originalFetch = global.fetch;
   const capturedEstimateBodies: unknown[] = [];
 

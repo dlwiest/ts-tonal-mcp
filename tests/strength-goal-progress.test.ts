@@ -6,13 +6,13 @@ import type {
   TonalMetricScoresResponse,
   TonalTargetScoresResponse,
 } from '@dlwiest/ts-tonal-client';
-import { getStrengthScore } from '../src/tools/strength-score.js';
+import { getStrengthGoalProgress } from '../src/tools/strength-goal-progress.js';
 
 function tonalClient(methods: Record<string, unknown>): TonalClient {
   return methods as unknown as TonalClient;
 }
 
-function reportText(response: Awaited<ReturnType<typeof getStrengthScore>>): string {
+function reportText(response: Awaited<ReturnType<typeof getStrengthGoalProgress>>): string {
   const [content] = response.content;
   assert.equal(content.type, 'text');
   return (content as { type: 'text'; text: string }).text;
@@ -54,7 +54,7 @@ test('matches goal metrics by name, not a hardcoded id', async () => {
     },
   });
 
-  const text = reportText(await getStrengthScore(client));
+  const text = reportText(await getStrengthGoalProgress(client));
 
   assert.match(text, /Strength Sets/);
   assert.match(text, /Functional Strength Score/);
@@ -78,7 +78,7 @@ test('falls back gracefully when no strength metrics exist', async () => {
     },
   });
 
-  const text = reportText(await getStrengthScore(client));
+  const text = reportText(await getStrengthGoalProgress(client));
   assert.match(text, /No strength-related goal metrics/);
 });
 
@@ -92,7 +92,7 @@ test('handles a metric with no score data yet without throwing', async () => {
     getDailyMetrics: async () => [{ date: '2026-08-24' }],
   });
 
-  const text = reportText(await getStrengthScore(client));
+  const text = reportText(await getStrengthGoalProgress(client));
   assert.match(text, /No score data available/);
 });
 
@@ -123,7 +123,7 @@ test('reports the real current week even when it has no actual score yet', async
     getDailyMetrics: async () => [{ date: '2026-08-24' }],
   });
 
-  const text = reportText(await getStrengthScore(client));
+  const text = reportText(await getStrengthGoalProgress(client));
   assert.match(text, /Current Week \(202635\)/);
   assert.match(text, /Actual: N\/A/);
   assert.match(text, /Target: 13\.00/);
@@ -156,7 +156,7 @@ test('does not report a pre-populated future week as current (ARIIA M1)', async 
     getDailyMetrics: async () => [{ date: '2026-08-24' }],
   });
 
-  const text = reportText(await getStrengthScore(client));
+  const text = reportText(await getStrengthGoalProgress(client));
   assert.doesNotMatch(text, /Current Week \(202636\)/);
   assert.doesNotMatch(text, /target 14\.00/);
   // Falls back to the most recent week at or before the real current week (202634), clearly
@@ -192,7 +192,7 @@ test('labels the fallback distinctly when the real current week cannot be determ
     },
   });
 
-  const text = reportText(await getStrengthScore(client));
+  const text = reportText(await getStrengthGoalProgress(client));
   assert.match(text, /Most Recent Available Week \(202634\)/);
   assert.match(text, /today's actual current week could not be determined/);
 });

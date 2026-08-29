@@ -132,7 +132,7 @@ function buildMetricSection(
   return section;
 }
 
-export async function getStrengthScore(client: TonalClient): Promise<MCPResponse> {
+export async function getStrengthGoalProgress(client: TonalClient): Promise<MCPResponse> {
   const goalMetrics = await client.getGoalMetrics();
 
   // Name-match rather than hardcode a UUID: Tonal's metric IDs are not
@@ -146,7 +146,7 @@ export async function getStrengthScore(client: TonalClient): Promise<MCPResponse
       content: [
         {
           type: 'text' as const,
-          text: '# 💪 Strength Score\n\nNo strength-related goal metrics were found for this account.',
+          text: '# 💪 Strength Goal Progress\n\nNo strength-related goal metrics were found for this account.',
         },
       ],
     };
@@ -158,7 +158,8 @@ export async function getStrengthScore(client: TonalClient): Promise<MCPResponse
     currentTonalWeekNumber(client),
   ]);
 
-  let report = `# 💪 Strength Score\n\n`;
+  let report = `# 💪 Strength Goal Progress\n\n`;
+  report += `_Weekly goal-progress metrics (e.g. Strength Sets, Functional Strength Score) -- not the app's headline per-region Strength Score. For that, use get_current_strength_scores._\n\n`;
 
   for (const metric of strengthMetrics) {
     const targets = targetScores[metric.id] ?? [];
