@@ -1,5 +1,6 @@
 import TonalClient, { TonalActivitySummary } from '@dlwiest/ts-tonal-client';
 import { MCPResponse } from '../types/index.js';
+import { activityTitle } from '../utils/activity-summaries.js';
 
 export async function getUserStats(client: TonalClient): Promise<MCPResponse> {
   const [userInfo, stats, streak] = await Promise.all([
@@ -96,7 +97,7 @@ export async function getRecentProgress(client: TonalClient): Promise<MCPRespons
       const daysAgo = Math.floor((Date.now() - new Date(activity.timestamp).getTime()) / (1000 * 60 * 60 * 24));
       const timeAgo = daysAgo === 0 ? 'Today' : daysAgo === 1 ? 'Yesterday' : `${daysAgo} days ago`;
 
-      report += `${index + 1}. **${activity.name}** (${timeAgo})\n`;
+      report += `${index + 1}. **${activityTitle(activity)}** (${timeAgo})\n`;
       report += `   - ${activity.totalVolume.toLocaleString()} lbs | ${Math.round(activity.duration / 60)} min\n`;
     });
   }
