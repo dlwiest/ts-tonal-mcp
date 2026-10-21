@@ -97,7 +97,7 @@ The server provides 18 tools for LLM interactions:
 | `get_goal_metrics` | Get weekly goal metrics (Volume, Work, Movement Quality Score, Strength Sets, Power Reps, Endurance Sets, Functional Strength Score) with the current week's actual, target, and range plus a recent trend; optional name `filter` |
 | `get_strength_scores` | Get Tonal's headline current Strength Score by body region and a compact per-activity trend; optional `days` is a calendar-day lookback, not a row count |
 | `list_workout_activities` | List one page of workout activities using the oldest-first API `offset` (default 0) and `limit` from 1 to 100 (default 20) |
-| `get_workout_activity_details` | Get one completed activity with performed sets, movement names, weights, reps, one-rep max, volume, and range of motion |
+| `get_workout_activity_details` | Get one completed activity with performed sets, movement names, weights, reps, one-rep max, volume, range of motion, prescriptions, set modifiers, reps in reserve, personal records, and set timing |
 | `get_workout_summary` | Get one formatted workout summary with session metadata and a per-movement breakdown |
 | `list_custom_workouts` | List all your custom workouts created on Tonal |
 | `create_workout` | Create a new custom workout with exercises, sets, reps/duration, and block grouping |

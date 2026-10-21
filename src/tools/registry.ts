@@ -236,7 +236,7 @@ const workoutTools: MCPToolDefinition[] = [
   },
   {
     name: 'get_workout_activity_details',
-    description: 'Get one completed activity with performed sets in original order, catalog-resolved movement names, per-set weights, reps, one-rep max, volume, and range of motion. Activity summary IDs from get_recent_workouts are the same workout activity IDs accepted here. Reports totalDuration as wall-clock time and activeDuration as time under tension.',
+    description: 'Get one completed activity with performed sets in original order, catalog-resolved movement names, per-set weights, reps, one-rep max, volume, and range of motion. When Tonal reports them, sets also include prescribed reps and duration, base weight with added eccentric or chains load, active modifiers, estimated reps in reserve, personal-record categories, and set duration. Rest before each working set is derived from set timestamps. Activity summary IDs from get_recent_workouts are the same workout activity IDs accepted here. Reports totalDuration as wall-clock time and activeDuration as time under tension.',
     inputSchema: {
       type: 'object',
       properties: {
