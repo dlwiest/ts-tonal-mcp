@@ -208,6 +208,10 @@ test('non-uniform reps, weights, flags, and descriptions survive reconstruction'
           warmUp: true,
           dropSet: false,
           burnout: false,
+          spotter: false,
+          eccentric: false,
+          chains: false,
+          flex: false,
           description: 'ramp up',
         },
         {
@@ -216,6 +220,10 @@ test('non-uniform reps, weights, flags, and descriptions survive reconstruction'
           warmUp: false,
           dropSet: false,
           burnout: false,
+          spotter: false,
+          eccentric: false,
+          chains: false,
+          flex: false,
           description: '',
         },
         {
@@ -224,6 +232,10 @@ test('non-uniform reps, weights, flags, and descriptions survive reconstruction'
           warmUp: false,
           dropSet: true,
           burnout: true,
+          spotter: false,
+          eccentric: false,
+          chains: false,
+          flex: false,
           description: 'drop',
         },
       ],
@@ -592,5 +604,147 @@ test('reconstruction chooses the movement goal when an API set carries both', ()
         prescribedDuration: 30,
       },
     ]
+  );
+});
+
+const TRAINING_MODES = ['spotter', 'eccentric', 'chains', 'flex', 'burnout'] as const;
+const MODE_SUPPORT = {
+  accessory: 'Handles',
+  resistanceType: 'Weight',
+  spotterDisabled: false,
+  eccentricDisabled: false,
+  chainsDisabled: false,
+  burnoutDisabled: false,
+};
+
+for (const mode of TRAINING_MODES) {
+  test(`${mode} sends explicit true and false and defaults omitted flags to false`, () => {
+    const sets = exercisesToSets(
+      [{
+        movementName: 'Bench Press',
+        setDetails: [
+          { reps: 10, [mode]: true },
+          { reps: 10, [mode]: false },
+          { reps: 10 },
+        ],
+      }],
+      [{ ...MOVEMENTS[0], onMachineInfo: MODE_SUPPORT }]
+    );
+
+    assert.deepEqual(sets.map((set) => set[mode]), [true, false, false]);
+  });
+
+  for (const uniform of [true, false]) {
+    test(`${mode} survives ${uniform ? 'uniform' : 'non-uniform'} set reconstruction and update`, () => {
+      const savedSets = GOLDEN_WORKOUT
+        .filter((set) => set.blockNumber === 1 && set.setGroup === 1)
+        .map((set, index) => ({
+          ...set,
+          prescribedReps: uniform ? 10 : 10 - index,
+          [mode]: index === 0,
+        }));
+      const exercises = reconstructExercisesFromSets(asReadSets(savedSets), MOVEMENTS);
+
+      assert.equal(exercises[0].sets, uniform ? 2 : undefined);
+      assert.deepEqual(exercises[0].setDetails?.map((set) => set[mode]), [true, false]);
+      assert.deepEqual(exercisesToSets(exercises, MOVEMENTS), savedSets);
+    });
+  }
+
+  test(`${mode} rejects non-boolean per-set values`, () => {
+    for (const value of ['true', 1, null, {}, []]) {
+      assert.throws(
+        () => exercisesToSets(
+          [{ movementName: 'Bench Press', setDetails: [{ reps: 10, [mode]: value }] }],
+          MOVEMENTS
+        ),
+        { message: `Exercise "Bench Press" setDetails[0].${mode} must be a boolean` }
+      );
+    }
+  });
+}
+
+for (const mode of ['spotter', 'eccentric', 'chains', 'burnout'] as const) {
+  const disabledMovement: TonalMovement = {
+    ...MOVEMENTS[0],
+    onMachineInfo: { ...MODE_SUPPORT, [`${mode}Disabled`]: true },
+  };
+
+  test(`${mode} rejects explicit true when the movement disables that mode`, () => {
+    assert.throws(
+      () => exercisesToSets(
+        [{
+          movementName: 'Bench Press',
+          setDetails: [{ reps: 10 }, { reps: 8, [mode]: true }],
+        }],
+        [disabledMovement]
+      ),
+      { message: `Exercise "Bench Press" set 2 requests ${mode}: true, but this movement does not support ${mode} mode (onMachineInfo.${mode}Disabled is true). Remove ${mode} from this set or choose a movement that supports it.` }
+    );
+  });
+
+  test(`${mode} being disabled permits false, omission, and other enabled modes`, () => {
+    const sets = exercisesToSets(
+      [{
+        movementName: 'Bench Press',
+        setDetails: [{ reps: 10, [mode]: false }, { reps: 10, flex: true }],
+      }],
+      [disabledMovement]
+    );
+
+    assert.deepEqual(sets.map((set) => set[mode]), [false, false]);
+    assert.equal(sets[1].flex, true);
+  });
+}
+
+test('absent onMachineInfo does not block any training mode', () => {
+  const sets = exercisesToSets(
+    [{
+      movementName: 'Bench Press',
+      setDetails: TRAINING_MODES.map((mode) => ({ reps: 10, [mode]: true })),
+    }],
+    MOVEMENTS
+  );
+
+  for (const [index, mode] of TRAINING_MODES.entries()) {
+    assert.equal(sets[index][mode], true);
+  }
+});
+
+test('uniform inputs default modes off and preserve touchscreen changes on the next update', () => {
+  const sets = exercisesToSets(
+    [{ movementName: 'Bench Press', sets: 2, reps: 10 }],
+    MOVEMENTS
+  );
+  for (const set of sets) {
+    for (const mode of TRAINING_MODES) {
+      assert.equal(set[mode], false);
+      set[mode] = true;
+    }
+  }
+
+  const exercises = reconstructExercisesFromSets(asReadSets(sets), MOVEMENTS);
+  assert.equal(exercises[0].sets, 2);
+  assert.equal(exercises[0].setDetails?.length, 2);
+  assert.deepEqual(exercisesToSets(exercises, MOVEMENTS), sets);
+});
+
+test('duration-based sets preserve all training modes through reconstruction', () => {
+  const sets = GOLDEN_WORKOUT
+    .filter((set) => set.movementId === 'plank')
+    .map((set) => ({
+      ...set,
+      blockStart: true,
+      setGroup: 1,
+      spotter: true,
+      eccentric: true,
+      chains: true,
+      flex: true,
+      burnout: true,
+    }));
+
+  assert.deepEqual(
+    exercisesToSets(reconstructExercisesFromSets(asReadSets(sets), MOVEMENTS), MOVEMENTS),
+    sets
   );
 });

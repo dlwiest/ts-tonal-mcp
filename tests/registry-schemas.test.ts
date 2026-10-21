@@ -52,3 +52,14 @@ test('create_workout, update_workout, and estimate_workout_duration accept the s
     'weight',
   ]);
 });
+
+test('all exercise schemas accept boolean training modes', () => {
+  for (const name of ['create_workout', 'update_workout', 'estimate_workout_duration']) {
+    const tool = toolsRegistry.get(name);
+    assert.ok(tool);
+    const properties = tool.inputSchema.properties.exercises.items.properties.setDetails.items.properties;
+    for (const mode of ['spotter', 'eccentric', 'chains', 'flex', 'burnout']) {
+      assert.equal(properties[mode]?.type, 'boolean', `${name} must accept ${mode}`);
+    }
+  }
+});

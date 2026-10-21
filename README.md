@@ -123,7 +123,9 @@ The server provides 18 tools for LLM interactions:
 
 ### Per-set programming
 
-`create_workout`, `update_workout`, and `estimate_workout_duration` accept `setDetails` when sets differ. Each entry may contain `reps`, `duration`, `weight`, `warmUp`, `dropSet`, `burnout`, and `description`. When present, `setDetails` is authoritative and its length is the set count. Without it, the existing `sets`, `reps`, `duration`, and `weight` fields still create uniform sets. An exercise-level `weight` acts as the fallback for any set that omits its own.
+`create_workout`, `update_workout`, and `estimate_workout_duration` accept `setDetails` when sets differ. Each entry may contain `reps`, `duration`, `weight`, `warmUp`, `dropSet`, `burnout`, `spotter`, `eccentric`, `chains`, `flex`, and `description`. When present, `setDetails` is authoritative and its length is the set count. Without it, the existing `sets`, `reps`, `duration`, and `weight` fields still create uniform sets. An exercise-level `weight` acts as the fallback for any set that omits its own.
+
+Mode flags default to `false` when omitted. `get_workout_for_editing` preserves them in `setDetails`, including for otherwise uniform sets, so passing those exercises back to `update_workout` retains modes enabled on the Tonal touchscreen. Requests enabling `spotter`, `eccentric`, `chains`, or `burnout` are rejected only when the movement explicitly reports the matching `onMachineInfo.*Disabled` flag as `true`; missing support metadata does not block them. Tonal reports no equivalent disabled flag for `flex`.
 
 ```json
 {

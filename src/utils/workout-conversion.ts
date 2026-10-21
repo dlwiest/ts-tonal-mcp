@@ -5,6 +5,8 @@ import type {
 } from '@dlwiest/ts-tonal-client';
 import type { ExerciseInput, SetDetail } from '../types/index.js';
 
+const GUARDED_MODES = ['spotter', 'eccentric', 'chains', 'burnout'] as const;
+
 interface ProcessedExercise {
   exercise: ExerciseInput;
   movementId: string;
@@ -112,7 +114,7 @@ export function exercisesToSets(
             `Exercise "${movementName}" setDetails[${setIndex}] cannot specify both reps and duration`
           );
         }
-        for (const field of ['warmUp', 'dropSet', 'burnout'] as const) {
+        for (const field of ['warmUp', 'dropSet', 'burnout', 'spotter', 'eccentric', 'chains', 'flex'] as const) {
           const value = setDetailInput[field];
           if (value !== undefined && typeof value !== 'boolean') {
             throw new Error(
@@ -147,6 +149,18 @@ export function exercisesToSets(
         }
         if (typeof setDetailInput.burnout === 'boolean') {
           setDetail.burnout = setDetailInput.burnout;
+        }
+        if (typeof setDetailInput.spotter === 'boolean') {
+          setDetail.spotter = setDetailInput.spotter;
+        }
+        if (typeof setDetailInput.eccentric === 'boolean') {
+          setDetail.eccentric = setDetailInput.eccentric;
+        }
+        if (typeof setDetailInput.chains === 'boolean') {
+          setDetail.chains = setDetailInput.chains;
+        }
+        if (typeof setDetailInput.flex === 'boolean') {
+          setDetail.flex = setDetailInput.flex;
         }
         if (typeof setDetailInput.description === 'string') {
           setDetail.description = setDetailInput.description;
@@ -212,6 +226,18 @@ export function exercisesToSets(
     // Validate reps or duration based on movement type
     if (exercise.setDetails !== undefined) {
       exercise.setDetails.forEach((setDetail, index) => {
+        // Missing support metadata is not a disabled mode; only explicit true blocks it.
+        for (const mode of GUARDED_MODES) {
+          if (
+            setDetail[mode] === true &&
+            movement.onMachineInfo?.[`${mode}Disabled`] === true
+          ) {
+            throw new Error(
+              `Exercise "${exercise.movementName}" set ${index + 1} requests ${mode}: true, but this movement does not support ${mode} mode (onMachineInfo.${mode}Disabled is true). Remove ${mode} from this set or choose a movement that supports it.`
+            );
+          }
+        }
+
         if (isDurationBased) {
           if (!setDetail.duration || setDetail.duration < 1) {
             throw new Error(
@@ -325,10 +351,10 @@ export function exercisesToSets(
             repetitionTotal: pe.setCount,
             blockNumber: blockNumber,
             burnout: hasSetDetails ? (setDetail?.burnout ?? false) : false,
-            spotter: false,
-            eccentric: false,
-            chains: false,
-            flex: false,
+            spotter: setDetail?.spotter ?? false,
+            eccentric: setDetail?.eccentric ?? false,
+            chains: setDetail?.chains ?? false,
+            flex: setDetail?.flex ?? false,
             warmUp: hasSetDetails
               ? (setDetail?.warmUp ?? pe.exercise.isWarmup ?? false)
               : (pe.exercise.isWarmup ?? false),
@@ -425,6 +451,10 @@ export function reconstructExercisesFromSets(
         warmUp: set.warmUp,
         dropSet: set.dropSet,
         burnout: set.burnout,
+        spotter: set.spotter,
+        eccentric: set.eccentric,
+        chains: set.chains,
+        flex: set.flex,
         description: set.description,
       };
 

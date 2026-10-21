@@ -44,7 +44,23 @@ const setDetailsSchema = {
       },
       burnout: {
         type: 'boolean',
-        description: 'Whether this is a burnout set',
+        description: 'Whether this is a burnout set. Rejected when onMachineInfo.burnoutDisabled is true for the movement.',
+      },
+      spotter: {
+        type: 'boolean',
+        description: 'Whether spotter mode is enabled for this set. Rejected when onMachineInfo.spotterDisabled is true for the movement.',
+      },
+      eccentric: {
+        type: 'boolean',
+        description: 'Whether eccentric mode is enabled for this set. Rejected when onMachineInfo.eccentricDisabled is true for the movement.',
+      },
+      chains: {
+        type: 'boolean',
+        description: 'Whether chains mode is enabled for this set. Rejected when onMachineInfo.chainsDisabled is true for the movement.',
+      },
+      flex: {
+        type: 'boolean',
+        description: 'Whether flex mode is enabled for this set.',
       },
       description: {
         type: 'string',

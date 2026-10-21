@@ -3,6 +3,7 @@ import test from 'node:test';
 import type TonalClient from '@dlwiest/ts-tonal-client';
 import type { TonalMovement, TonalWorkoutEstimateSet } from '@dlwiest/ts-tonal-client';
 import { createWorkout } from '../src/tools/custom-workouts.js';
+import { getWorkoutForEditing, updateWorkout } from '../src/tools/workout-editing.js';
 import type { MCPResponse } from '../src/types/index.js';
 
 // The three write tools are never invoked against the live account, by policy. Their success
@@ -79,7 +80,10 @@ test('create_workout still accepts the shared exercise schema shape, setDetails 
         {
           movementName: 'Bench Press',
           weight: 70,
-          setDetails: [{ reps: 10 }, { reps: 8, weight: 85 }],
+          setDetails: [
+            { reps: 10, spotter: true, eccentric: true },
+            { reps: 8, weight: 85, chains: true, flex: true, burnout: true },
+          ],
           block: 1,
         },
       ],
@@ -90,6 +94,15 @@ test('create_workout still accepts the shared exercise schema shape, setDetails 
   assert.equal(received?.length, 2);
   assert.equal(received?.[0].weightPercentage, 70, 'exercise weight is the per-set fallback');
   assert.equal(received?.[1].weightPercentage, 85, 'a per-set weight wins');
+  assert.deepEqual(
+    received?.map(({ spotter, eccentric, chains, flex, burnout }) => ({
+      spotter, eccentric, chains, flex, burnout,
+    })),
+    [
+      { spotter: true, eccentric: true, chains: false, flex: false, burnout: false },
+      { spotter: false, eccentric: false, chains: true, flex: true, burnout: true },
+    ]
+  );
 });
 
 test('create_workout surfaces a validation failure without calling the client', async () => {
@@ -119,4 +132,60 @@ test('create_workout surfaces an unknown movement without calling the client', a
 
   assert.equal(response.isError, true);
   assert.equal(created, false, 'nothing may be created for an unknown movement');
+});
+
+test('get_workout_for_editing to update_workout preserves touchscreen training modes', async () => {
+  const savedSets: TonalWorkoutEstimateSet[] = [1, 2].map((round) => ({
+    blockStart: round === 1,
+    movementId: 'bench',
+    prescribedReps: 10,
+    repetition: round,
+    repetitionTotal: 2,
+    blockNumber: 1,
+    weightPercentage: 70,
+    setGroup: 1,
+    round,
+    warmUp: false,
+    dropSet: false,
+    description: '',
+    spotter: round === 1,
+    eccentric: round === 2,
+    chains: round === 1,
+    flex: round === 2,
+    burnout: round === 2,
+  }));
+  const workout = {
+    id: 'wk-1',
+    title: 'Touchscreen Modes',
+    description: '',
+    duration: 900,
+    sets: savedSets,
+  };
+  let received: TonalWorkoutEstimateSet[] | undefined;
+  const client = fakeClient({
+    getMovements: async () => [BENCH],
+    getUserWorkouts: async () => [workout],
+    getWorkoutById: async () => workout,
+    updateWorkout: async (payload: { sets: TonalWorkoutEstimateSet[]; title: string }) => {
+      received = payload.sets;
+      return { ...workout, ...payload };
+    },
+  });
+
+  const editingResponse = await getWorkoutForEditing(client, { workoutName: workout.title });
+  assert.notEqual(editingResponse.isError, true);
+  const editingJson = reportText(editingResponse).match(/```json\n([\s\S]*?)\n```/);
+  assert.ok(editingJson);
+  const { exercises } = JSON.parse(editingJson[1]);
+  const updated = await updateWorkout(client, {
+    workoutName: workout.title,
+    title: 'Renamed Without Changing Modes',
+    exercises,
+  });
+
+  assert.notEqual(updated.isError, true);
+  assert.deepEqual(received, savedSets);
+  const updatedJson = reportText(updated).match(/```json\n([\s\S]*?)\n```/);
+  assert.ok(updatedJson);
+  assert.deepEqual(JSON.parse(updatedJson[1]).exercises, exercises);
 });

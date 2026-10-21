@@ -47,6 +47,10 @@ export interface SetDetail {
   warmUp?: boolean;
   dropSet?: boolean;
   burnout?: boolean;
+  spotter?: boolean;
+  eccentric?: boolean;
+  chains?: boolean;
+  flex?: boolean;
   description?: string;
 }
 
