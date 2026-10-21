@@ -1,5 +1,5 @@
 import { timingSafeEqual } from 'node:crypto';
-import { createServer as createHttpServer } from 'node:http';
+import { createServer as createHttpServer, type IncomingMessage } from 'node:http';
 import { createRequire } from 'node:module';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
@@ -22,6 +22,25 @@ if (
   throw new Error('package.json must contain a string version');
 }
 const packageVersion = packageMetadata.version;
+
+const MAX_REQUEST_BODY_BYTES = 1024 * 1024;
+
+// Returns null once the body exceeds the limit, without buffering the rest.
+async function readBoundedBody(req: IncomingMessage): Promise<Buffer | null> {
+  if (Number(req.headers['content-length']) > MAX_REQUEST_BODY_BYTES) {
+    return null;
+  }
+  const chunks: Buffer[] = [];
+  let size = 0;
+  for await (const chunk of req as AsyncIterable<Buffer>) {
+    size += chunk.length;
+    if (size > MAX_REQUEST_BODY_BYTES) {
+      return null;
+    }
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks, size);
+}
 
 export class TonalMCPServer {
   private tonalService: TonalService;
@@ -121,6 +140,13 @@ export class TonalMCPServer {
         return;
       }
 
+      // Stateless mode never sends server-initiated messages, so GET would only hold an
+      // idle event stream open and DELETE has no session to end.
+      if (req.method !== 'POST') {
+        res.writeHead(405, { Allow: 'POST' }).end();
+        return;
+      }
+
       // Stateless mode: a fresh server and transport per request
       const server = this.createServer();
       const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
@@ -130,8 +156,26 @@ export class TonalMCPServer {
       });
 
       try {
+        const body = await readBoundedBody(req);
+        if (body === null) {
+          res.writeHead(413, { Connection: 'close' }).end();
+          return;
+        }
+
+        let parsedBody: unknown;
+        try {
+          parsedBody = JSON.parse(body.toString('utf8'));
+        } catch {
+          res.writeHead(400, { 'Content-Type': 'application/json' }).end(JSON.stringify({
+            jsonrpc: '2.0',
+            error: { code: -32700, message: 'Parse error: Invalid JSON' },
+            id: null,
+          }));
+          return;
+        }
+
         await server.connect(transport);
-        await transport.handleRequest(req, res);
+        await transport.handleRequest(req, res, parsedBody);
       } catch (error) {
         console.error('Error handling MCP request:', error);
         if (!res.headersSent) {

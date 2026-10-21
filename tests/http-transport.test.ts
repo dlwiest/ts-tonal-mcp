@@ -1,20 +1,53 @@
 import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
+import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { once } from 'node:events';
 import { connect, createServer } from 'node:net';
-import test from 'node:test';
+import test, { after, before } from 'node:test';
 
-async function freePort(): Promise<number> {
+const TOKEN = 'test-token';
+const MCP_HEADERS = {
+  Authorization: `Bearer ${TOKEN}`,
+  'Content-Type': 'application/json',
+  Accept: 'application/json, text/event-stream',
+};
+
+let port: number;
+let child: ChildProcessWithoutNullStreams;
+let stderr = '';
+
+before(async () => {
   const probe = createServer().listen(0, '127.0.0.1');
   await once(probe, 'listening');
   const address = probe.address();
   assert.ok(address && typeof address === 'object');
+  port = address.port;
   probe.close();
-  return address.port;
-}
+
+  child = spawn(process.execPath, ['--import', 'tsx', 'src/index.ts'], {
+    env: {
+      ...process.env,
+      MCP_TRANSPORT: 'http',
+      MCP_AUTH_TOKEN: TOKEN,
+      PORT: String(port),
+      TONAL_USERNAME: 'user@example.com',
+      TONAL_PASSWORD: 'unused',
+    },
+  });
+
+  // Promise.withResolvers is ES2024; the project targets ES2022.
+  await new Promise<void>((resolve, reject) => {
+    child.stderr.setEncoding('utf8').on('data', chunk => {
+      stderr += chunk;
+      if (stderr.includes('listening')) resolve();
+    });
+    child.once('exit', code => reject(new Error(`server exited early (${code}): ${stderr}`)));
+  });
+});
+
+after(() => { child.kill(); });
 
 // Sends a raw request so the target reaches the server unnormalized.
-async function rawRequest(port: number, target: string): Promise<string> {
+async function rawRequest(target: string): Promise<string> {
   const socket = connect(port, '127.0.0.1');
   await once(socket, 'connect');
   socket.end(`GET ${target} HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n`);
@@ -24,31 +57,64 @@ async function rawRequest(port: number, target: string): Promise<string> {
   return response;
 }
 
-test('an unparseable request target does not take down the HTTP server', async (t) => {
-  const port = await freePort();
-  const child = spawn(process.execPath, ['--import', 'tsx', 'src/index.ts'], {
-    env: {
-      ...process.env,
-      MCP_TRANSPORT: 'http',
-      MCP_AUTH_TOKEN: 'test-token',
-      PORT: String(port),
-      TONAL_USERNAME: 'user@example.com',
-      TONAL_PASSWORD: 'unused',
-    },
-    stdio: ['ignore', 'ignore', 'pipe'],
-  });
-  t.after(() => { child.kill(); });
+function mcp(init: RequestInit): Promise<Response> {
+  return fetch(`http://127.0.0.1:${port}/mcp`, { ...init, signal: AbortSignal.timeout(5000) });
+}
 
-  let stderr = '';
-  await new Promise<void>((resolve, reject) => {
-    child.stderr.setEncoding('utf8').on('data', chunk => {
-      stderr += chunk;
-      if (stderr.includes('listening')) resolve();
-    });
-    child.once('exit', code => reject(new Error(`server exited early (${code}): ${stderr}`)));
-  });
-
-  assert.match(await rawRequest(port, '//['), /^HTTP\/1\.1 404 /);
-  assert.match(await rawRequest(port, '/health'), /^HTTP\/1\.1 200 /);
+test('an unparseable request target does not take down the HTTP server', async () => {
+  assert.match(await rawRequest('//['), /^HTTP\/1\.1 404 /);
+  assert.match(await rawRequest('/health'), /^HTTP\/1\.1 200 /);
   assert.equal(child.exitCode, null, stderr);
+});
+
+test('authenticated non-POST requests get 405 instead of an idle event stream', async () => {
+  for (const method of ['GET', 'DELETE']) {
+    const response = await mcp({ method, headers: { ...MCP_HEADERS, Accept: 'text/event-stream' } });
+    assert.equal(response.status, 405, method);
+    assert.equal(response.headers.get('allow'), 'POST', method);
+  }
+});
+
+test('unauthenticated requests are rejected before the method or body is considered', async () => {
+  const response = await mcp({ method: 'GET' });
+  assert.equal(response.status, 401);
+});
+
+test('request bodies over 1 MB are rejected, whether declared or streamed', async () => {
+  const oversized = 'x'.repeat(1024 * 1024 + 1);
+  const declared = await mcp({ method: 'POST', headers: MCP_HEADERS, body: oversized });
+  assert.equal(declared.status, 413);
+
+  const encoder = new TextEncoder();
+  const streamed = await mcp({
+    method: 'POST',
+    headers: MCP_HEADERS,
+    body: new ReadableStream({
+      start(controller) {
+        for (let sent = 0; sent <= 1024 * 1024; sent += 64 * 1024) {
+          controller.enqueue(encoder.encode('x'.repeat(64 * 1024)));
+        }
+        controller.close();
+      },
+    }),
+    duplex: 'half',
+  } as RequestInit);
+  assert.equal(streamed.status, 413);
+});
+
+test('a malformed JSON body gets a JSON-RPC parse error', async () => {
+  const response = await mcp({ method: 'POST', headers: MCP_HEADERS, body: '{"jsonrpc":' });
+  assert.equal(response.status, 400);
+  const body = await response.json() as { error: { code: number } };
+  assert.equal(body.error.code, -32700);
+});
+
+test('a valid request within the limit reaches the MCP server', async () => {
+  const response = await mcp({
+    method: 'POST',
+    headers: MCP_HEADERS,
+    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' }),
+  });
+  assert.equal(response.status, 200);
+  assert.match(await response.text(), /"name":"get_muscle_readiness"/);
 });
