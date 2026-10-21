@@ -341,6 +341,33 @@ test('adds no lines for fields a set does not report', async () => {
   );
 });
 
+test('omits placeholder zeros and nulls instead of rendering them as data', async () => {
+  const text = reportText(await getWorkoutActivityDetails(fakeClient({
+    getWorkoutActivityById: async () => ({
+      ...DETAIL,
+      workoutSetActivity: [
+        {
+          movementId: 'movement-bench',
+          duration: 0,
+          repCount: 0,
+          prescribedReps: 0,
+          prescribedDuration: 0,
+          repsInReserve: 0,
+        },
+        {
+          movementId: 'movement-bench',
+          duration: null,
+          prescribedDuration: null,
+        },
+      ],
+    }) as unknown as TonalWorkoutActivity,
+    getMovements: async () => MOVEMENTS,
+  }), { activityId: 'activity-42' }));
+
+  assert.doesNotMatch(text, /Prescribed|reps in reserve|Set duration \(duration\): not reported/);
+  assert.match(setSection(text, '### Set 1: Bench Press'), /^- Set duration \(duration\): 0 seconds$/m);
+});
+
 test('resolves movement names from the catalog without exposing movement UUIDs', async () => {
   const text = reportText(await getWorkoutActivityDetails(fakeClient({
     getWorkoutActivityById: async () => DETAIL,

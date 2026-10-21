@@ -96,11 +96,12 @@ export async function getWorkoutActivityDetails(
         report += `- On-machine volume (totalOnMachineVolume): ${formatMetric(set.totalOnMachineVolume, 'lb')}\n`;
         report += `- Range of motion (romLengthIn): ${formatMetric(set.romLengthIn, 'in')}\n`;
 
+        // Zero prescriptions are placeholders, matching reconstructExercisesFromSets.
         const prescription: string[] = [];
-        if (set.prescribedReps !== undefined && set.prescribedReps !== null) {
+        if ((set.prescribedReps ?? 0) > 0) {
           prescription.push(`Prescribed reps (prescribedReps): ${set.prescribedReps}`);
         }
-        if (set.prescribedDuration !== undefined) {
+        if ((set.prescribedDuration ?? 0) > 0) {
           prescription.push(`Prescribed duration (prescribedDuration): ${formatMetric(set.prescribedDuration, 'seconds')}`);
         }
         if (prescription.length > 0) {
@@ -131,7 +132,7 @@ export async function getWorkoutActivityDetails(
           report += `- Modifiers: ${modifiers.join(', ')}\n`;
         }
 
-        if (typeof set.repsInReserve === 'number') {
+        if (performed && typeof set.repsInReserve === 'number') {
           // A fractional model estimate; one decimal is all the precision it carries.
           report += `- Estimated reps in reserve (repsInReserve): ${Number(set.repsInReserve.toFixed(1))}\n`;
         }
@@ -148,7 +149,7 @@ export async function getWorkoutActivityDetails(
         // Skipped sets (zero duration, out-of-order timestamps) and programmed Rest
         // blocks don't reset it, so rest after a Rest block includes the block.
         const timing: string[] = [];
-        if (set.duration !== undefined) {
+        if (set.duration !== undefined && set.duration !== null) {
           timing.push(`Set duration (duration): ${formatMetric(set.duration, 'seconds')}`);
         }
         const working = performed && set.movementId !== REST_MOVEMENT_ID;
