@@ -99,7 +99,8 @@ export class TonalMCPServer {
     const port = Number(process.env.PORT ?? 8080);
 
     const httpServer = createHttpServer(async (req, res) => {
-      const path = new URL(req.url ?? '/', 'http://localhost').pathname;
+      // Split rather than `new URL`: it throws on targets like `//[`, and this handler runs before auth.
+      const path = (req.url ?? '/').split('?', 1)[0];
 
       if (path === '/health') {
         res.writeHead(200, { 'Content-Type': 'text/plain' }).end('ok');
