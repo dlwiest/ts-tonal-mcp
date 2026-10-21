@@ -72,6 +72,20 @@ Put `TONAL_USERNAME` and `TONAL_PASSWORD` in `~/.hermes/.env`, then register the
 
 See [`hermes-tonal`](https://github.com/dlwiest/hermes-tonal) for the complete read-only and full-access configurations and companion skill.
 
+### Remote (HTTP) Deployment
+
+Set `MCP_TRANSPORT=http` to serve MCP over Streamable HTTP instead of stdio. The server listens on `PORT` (default `8080`) at `/mcp`, with a `/health` endpoint for health checks. `MCP_AUTH_TOKEN` is required in this mode, and clients must send it as `Authorization: Bearer <token>`.
+
+```bash
+MCP_TRANSPORT=http MCP_AUTH_TOKEN=$(openssl rand -hex 32) npm start
+```
+
+Connect from Claude Code:
+
+```bash
+claude mcp add --transport http tonal https://your-host/mcp --header "Authorization: Bearer <token>"
+```
+
 ### Direct Usage
 
 ```bash

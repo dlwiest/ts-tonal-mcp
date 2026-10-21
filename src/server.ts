@@ -1,6 +1,9 @@
+import { timingSafeEqual } from 'node:crypto';
+import { createServer as createHttpServer } from 'node:http';
 import { createRequire } from 'node:module';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import {
   ListToolsRequestSchema,
   CallToolRequestSchema,
@@ -21,11 +24,16 @@ if (
 const packageVersion = packageMetadata.version;
 
 export class TonalMCPServer {
-  private server: Server;
   private tonalService: TonalService;
 
   constructor() {
-    this.server = new Server(
+    this.tonalService = new TonalService();
+    console.error('TonalMCPServer created');
+  }
+
+  // Builds an MCP server instance; HTTP mode creates one per request, sharing the Tonal client
+  private createServer(): Server {
+    const server = new Server(
       {
         name: 'tonal-mcp',
         version: packageVersion,
@@ -36,15 +44,13 @@ export class TonalMCPServer {
         },
       }
     );
-
-    this.tonalService = new TonalService();
-    this.setupHandlers();
-    console.error('TonalMCPServer created');
+    this.setupHandlers(server);
+    return server;
   }
 
-  private setupHandlers() {
+  private setupHandlers(server: Server) {
     // Register tool list handler
-    this.server.setRequestHandler(ListToolsRequestSchema, async () => {
+    server.setRequestHandler(ListToolsRequestSchema, async () => {
       return {
         tools: allTools.map(tool => ({
           name: tool.name,
@@ -56,7 +62,7 @@ export class TonalMCPServer {
     });
 
     // Register tool execution handler
-    this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
+    server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const { name, arguments: args } = request.params;
 
       try {
@@ -74,8 +80,66 @@ export class TonalMCPServer {
   }
 
   async run() {
+    if (process.env.MCP_TRANSPORT === 'http') {
+      await this.runHttp();
+      return;
+    }
+
     const transport = new StdioServerTransport();
-    await this.server.connect(transport);
+    await this.createServer().connect(transport);
     console.error('Tonal MCP server running on stdio');
+  }
+
+  private async runHttp() {
+    const authToken = process.env.MCP_AUTH_TOKEN;
+    if (!authToken) {
+      throw new Error('MCP_AUTH_TOKEN environment variable is required when MCP_TRANSPORT=http');
+    }
+    const expectedAuth = Buffer.from(`Bearer ${authToken}`);
+    const port = Number(process.env.PORT ?? 8080);
+
+    const httpServer = createHttpServer(async (req, res) => {
+      const path = new URL(req.url ?? '/', 'http://localhost').pathname;
+
+      if (path === '/health') {
+        res.writeHead(200, { 'Content-Type': 'text/plain' }).end('ok');
+        return;
+      }
+
+      if (path !== '/mcp') {
+        res.writeHead(404).end();
+        return;
+      }
+
+      const providedAuth = Buffer.from(req.headers.authorization ?? '');
+      if (
+        providedAuth.length !== expectedAuth.length ||
+        !timingSafeEqual(providedAuth, expectedAuth)
+      ) {
+        res.writeHead(401, { 'WWW-Authenticate': 'Bearer' }).end();
+        return;
+      }
+
+      // Stateless mode: a fresh server and transport per request
+      const server = this.createServer();
+      const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+      res.on('close', () => {
+        void transport.close();
+        void server.close();
+      });
+
+      try {
+        await server.connect(transport);
+        await transport.handleRequest(req, res);
+      } catch (error) {
+        console.error('Error handling MCP request:', error);
+        if (!res.headersSent) {
+          res.writeHead(500).end();
+        }
+      }
+    });
+
+    await new Promise<void>((resolve) => httpServer.listen(port, '0.0.0.0', resolve));
+    console.error(`Tonal MCP server listening on http://0.0.0.0:${port}/mcp`);
   }
 }
