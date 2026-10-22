@@ -25,14 +25,15 @@ const packageVersion = packageMetadata.version;
 
 const MAX_REQUEST_BODY_BYTES = 1024 * 1024;
 
-// Returns null once the body exceeds the limit, without buffering the rest.
+// Returns null once the body exceeds the limit, without buffering the rest. The request
+// is left open (not destroyed) on overflow so the caller can still send its 413.
 async function readBoundedBody(req: IncomingMessage): Promise<Buffer | null> {
   if (Number(req.headers['content-length']) > MAX_REQUEST_BODY_BYTES) {
     return null;
   }
   const chunks: Buffer[] = [];
   let size = 0;
-  for await (const chunk of req as AsyncIterable<Buffer>) {
+  for await (const chunk of req.iterator({ destroyOnReturn: false }) as AsyncIterable<Buffer>) {
     size += chunk.length;
     if (size > MAX_REQUEST_BODY_BYTES) {
       return null;
@@ -158,7 +159,10 @@ export class TonalMCPServer {
       try {
         const body = await readBoundedBody(req);
         if (body === null) {
-          res.writeHead(413, { Connection: 'close' }).end();
+          // Discard the rest of the body rather than closing: closing while the client is
+          // still uploading resets the connection and the client never sees the 413.
+          req.resume();
+          res.writeHead(413).end();
           return;
         }
 

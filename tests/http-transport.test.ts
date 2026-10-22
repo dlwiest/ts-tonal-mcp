@@ -80,26 +80,39 @@ test('unauthenticated requests are rejected before the method or body is conside
   assert.equal(response.status, 401);
 });
 
-test('request bodies over 1 MB are rejected, whether declared or streamed', async () => {
+test('request bodies over 1 MB are rejected, whether declared or still streaming', async () => {
   const oversized = 'x'.repeat(1024 * 1024 + 1);
   const declared = await mcp({ method: 'POST', headers: MCP_HEADERS, body: oversized });
   assert.equal(declared.status, 413);
 
-  const encoder = new TextEncoder();
-  const streamed = await mcp({
-    method: 'POST',
-    headers: MCP_HEADERS,
-    body: new ReadableStream({
-      start(controller) {
-        for (let sent = 0; sent <= 1024 * 1024; sent += 64 * 1024) {
-          controller.enqueue(encoder.encode('x'.repeat(64 * 1024)));
-        }
-        controller.close();
-      },
-    }),
-    duplex: 'half',
-  } as RequestInit);
-  assert.equal(streamed.status, 413);
+  // A chunked sender still uploading past the limit must get its 413 on an open
+  // connection: closing mid-upload resets the socket, which can drop the response.
+  // Finishing the body and reusing the connection proves the server drained it.
+  const socket = connect(port, '127.0.0.1');
+  await once(socket, 'connect');
+  let response = '';
+  const responseMatches = (pattern: RegExp): Promise<void> => new Promise((resolve, reject) => {
+    const check = (): void => { if (pattern.test(response)) resolve(); };
+    socket.setEncoding('utf8').on('data', data => { response += data; check(); });
+    socket.once('error', reject);
+    socket.once('close', () => reject(new Error(`connection closed early: ${JSON.stringify(response)}`)));
+    check();
+  });
+  try {
+    socket.write(
+      'POST /mcp HTTP/1.1\r\nHost: localhost\r\nTransfer-Encoding: chunked\r\n' +
+      `Authorization: Bearer ${TOKEN}\r\nContent-Type: application/json\r\n` +
+      'Accept: application/json, text/event-stream\r\n\r\n'
+    );
+    const frame = `${(64 * 1024).toString(16)}\r\n${'x'.repeat(64 * 1024)}\r\n`;
+    for (let sent = 0; sent <= 2 * 1024 * 1024; sent += 64 * 1024) socket.write(frame);
+    await responseMatches(/^HTTP\/1\.1 413 [\s\S]*\r\n\r\n/);
+
+    socket.write('0\r\n\r\nGET /health HTTP/1.1\r\nHost: localhost\r\n\r\n');
+    await responseMatches(/\r\n\r\n[\s\S]*HTTP\/1\.1 200 /);
+  } finally {
+    socket.destroy();
+  }
 });
 
 test('a malformed JSON body gets a JSON-RPC parse error', async () => {
