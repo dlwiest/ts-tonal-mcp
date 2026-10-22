@@ -90,13 +90,19 @@ test('request bodies over 1 MB are rejected, whether declared or still streaming
   // Finishing the body and reusing the connection proves the server drained it.
   const socket = connect(port, '127.0.0.1');
   await once(socket, 'connect');
+  // One set of listeners for the whole exchange; each wait just checks the accumulated response.
   let response = '';
+  let failure: Error | undefined;
+  let notify = (): void => {};
+  socket.setEncoding('utf8').on('data', data => { response += data; notify(); });
+  socket.on('error', error => { failure = error; notify(); });
+  socket.on('close', () => { failure ??= new Error(`connection closed early: ${JSON.stringify(response)}`); notify(); });
   const responseMatches = (pattern: RegExp): Promise<void> => new Promise((resolve, reject) => {
-    const check = (): void => { if (pattern.test(response)) resolve(); };
-    socket.setEncoding('utf8').on('data', data => { response += data; check(); });
-    socket.once('error', reject);
-    socket.once('close', () => reject(new Error(`connection closed early: ${JSON.stringify(response)}`)));
-    check();
+    notify = () => {
+      if (pattern.test(response)) resolve();
+      else if (failure) reject(failure);
+    };
+    notify();
   });
   try {
     socket.write(
