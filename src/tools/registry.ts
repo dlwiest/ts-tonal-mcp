@@ -11,6 +11,7 @@ import { listCustomWorkouts, deleteCustomWorkout, getCustomWorkoutDetails, creat
 import { getWorkoutForEditing, updateWorkout } from './workout-editing.js';
 import { getGoalMetrics } from './goal-metrics.js';
 import { getStrengthScores } from './strength-scores.js';
+import { getAchievements } from './achievements.js';
 import { estimateWorkoutDuration } from './workout-duration.js';
 import { listWorkoutActivities } from './workout-activities.js';
 import { getWorkoutActivityDetails, getWorkoutSummary } from './workout-activity-details.js';
@@ -198,6 +199,26 @@ const fitnessTools: MCPToolDefinition[] = [
       destructiveHint: false,
     },
     handler: getStrengthScores,
+  },
+  {
+    name: 'get_achievements',
+    description: 'Get Tonal achievements: the total earned, the next milestones in progress, and earned achievements newest first with their dates and categories.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        limit: {
+          type: 'integer',
+          minimum: 1,
+          description: 'How many earned achievements to list, newest first (default 15). The total is always reported.',
+        },
+      },
+      required: [],
+    },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+    },
+    handler: getAchievements,
   },
 ];
 
