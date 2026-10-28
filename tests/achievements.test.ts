@@ -58,11 +58,14 @@ function earned(name: string, createdAt: string, category?: string): TonalEarned
   };
 }
 
-// Deliberately out of order: the tool must not trust API order.
+// Deliberately out of order: the tool must not trust API order. "Middle" was earned
+// twice, so there are 4 earned records for STATS' 3 distinct achievements, as Tonal
+// returns for repeatable badges.
 const EARNED = [
   earned('Middle', '2026-02-01T00:00:00Z', 'Badges'),
   earned('Newest', '2026-03-01T00:00:00Z', 'Volume Milestone'),
   earned('Oldest', '2026-01-01T00:00:00Z'),
+  earned('Middle', '2025-02-01T00:00:00Z', 'Badges'),
 ];
 
 function client(stats: TonalAchievementStats, list: TonalEarnedAchievement[]): TonalClient {
@@ -76,7 +79,7 @@ test('lists earned achievements newest first with categories and the next milest
   const text = reportText(await getAchievements(client(STATS, EARNED), {}));
 
   assert.match(text, /Distinct achievements earned \(totalAchievements\): 3/);
-  assert.match(text, /Times earned, including repeat badges: 3/);
+  assert.match(text, /Times earned, including repeat badges: 4/);
   assert.match(text, /\*\*500 Workouts\*\*: Completed 500 workouts on Tonal/);
   const order = ['Newest', 'Middle', 'Oldest'].map(name => text.indexOf(`**${name}**`));
   assert.deepEqual([...order].sort((a, b) => a - b), order);
@@ -87,7 +90,7 @@ test('lists earned achievements newest first with categories and the next milest
 test('limit keeps the newest achievements and says how many were left out', async () => {
   const text = reportText(await getAchievements(client(STATS, EARNED), { limit: 1 }));
 
-  assert.match(text, /showing 1 of 3/);
+  assert.match(text, /showing 1 of 4/);
   assert.match(text, /\*\*Newest\*\*/);
   assert.doesNotMatch(text, /\*\*Middle\*\*|\*\*Oldest\*\*/);
 });
