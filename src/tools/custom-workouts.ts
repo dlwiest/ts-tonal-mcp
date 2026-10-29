@@ -2,6 +2,7 @@ import TonalClient, { type TonalWorkout } from '@dlwiest/ts-tonal-client';
 import { MCPResponse } from '../types/index.js';
 import { TonalMCPError, handleToolError } from '../utils/error-handler.js';
 import { exercisesToSets } from '../utils/workout-conversion.js';
+import { formatPoundConversions, resolvePoundTargets } from '../utils/pound-targets.js';
 import {
   validateOptionalString,
   validateRequiredString,
@@ -269,10 +270,11 @@ export async function createWorkout(
   try {
     const title = validateRequiredString(args?.title, 'Workout title');
     const description = validateOptionalString(args?.description, 'Workout description');
-    const exercises = args?.exercises;
-    validateWorkoutExercises(exercises);
+    const requestedExercises = args?.exercises;
+    validateWorkoutExercises(requestedExercises);
 
     const movements = await client.getMovements();
+    const { exercises, conversions } = await resolvePoundTargets(client, requestedExercises, movements);
     const sets = exercisesToSets(exercises, movements);
 
     const workout = await client.createWorkout({
@@ -312,6 +314,7 @@ export async function createWorkout(
       report += `\n`;
     });
 
+    report += formatPoundConversions(conversions);
     report += `\n_Your workout has been saved and is ready to use on your Tonal!_\n`;
 
     return {

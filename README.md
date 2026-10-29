@@ -98,7 +98,7 @@ node dist/index.js
 
 ## Available Tools
 
-The server provides 19 tools for LLM interactions:
+The server provides 20 tools for LLM interactions:
 
 | Tool | Description |
 |------|-------------|
@@ -121,12 +121,17 @@ The server provides 19 tools for LLM interactions:
 | `get_workout_for_editing` | Get the complete editable structure of an existing workout |
 | `update_workout` | Update an existing workout by replacing its full set list |
 | `estimate_workout_duration` | Estimate how long a prescribed workout would take, without creating or modifying anything |
+| `get_suggested_weights` | Get Tonal's last recorded suggested weight in pounds per on-machine movement (an estimate of what 100% loads), from your most recent performed set |
 
 ### Per-set programming
 
 `create_workout`, `update_workout`, and `estimate_workout_duration` accept `setDetails` when sets differ. Each entry may contain `reps`, `duration`, `weight`, `warmUp`, `dropSet`, `burnout`, `spotter`, `eccentric`, `chains`, `flex`, and `description`. When present, `setDetails` is authoritative and its length is the set count. Without it, the existing `sets`, `reps`, `duration`, and `weight` fields still create uniform sets. An exercise-level `weight` acts as the fallback for any set that omits its own.
 
 Mode flags default to `false` when omitted. `get_workout_for_editing` preserves them in `setDetails`, including for otherwise uniform sets, so passing those exercises back to `update_workout` retains modes enabled on the Tonal touchscreen. Requests enabling `spotter`, `eccentric`, `chains`, or `burnout` are rejected only when the movement explicitly reports the matching `onMachineInfo.*Disabled` flag as `true`; missing support metadata does not block them. Tonal reports no equivalent disabled flag for `flex`.
+
+### Weights in pounds
+
+Tonal stores a set's weight as a percentage of its suggested weight for the movement, which it records on every performed set. In measured history, the loaded weight matched percentage × suggested weight within 1 lb on 97% of sets without eccentric, chains, or Smart Flex. The suggestion depends on the prescribed reps: in every session that mixed rep counts for a movement, the higher-rep sets carried a lower suggestion. `weight` (a percentage) works exactly as before. `weightLb` is an optional alternative (exercise level or per set, never alongside `weight` at the same level) that converts each set's pounds using the suggestion from your most recent performance of that movement at the same reps (or duration, for timed movements) in the last 20 Tonal workouts. That recorded suggestion may already have changed, so converted pounds are estimates: in measured history it carried into the next session within 5% for 92% of sets. Results outside 1–100% are rejected: Tonal's own programming never exceeds 100%, and higher values are unverified on a trainer. Off-machine movements, or movements you haven't performed recently at that rep count, need `weight`. The response lists each conversion, and `get_suggested_weights` shows the suggestions available per rep count. Because the stored value is a percentage, the trainer's load rises with Tonal's suggestion as you progress.
 
 ```json
 {

@@ -50,6 +50,7 @@ test('create_workout, update_workout, and estimate_workout_duration accept the s
     'setDetails',
     'sets',
     'weight',
+    'weightLb',
   ]);
 });
 

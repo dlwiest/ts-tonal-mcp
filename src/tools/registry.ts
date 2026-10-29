@@ -15,6 +15,7 @@ import { getAchievements } from './achievements.js';
 import { estimateWorkoutDuration } from './workout-duration.js';
 import { listWorkoutActivities } from './workout-activities.js';
 import { getWorkoutActivityDetails, getWorkoutSummary } from './workout-activity-details.js';
+import { getSuggestedWeights } from './suggested-weights.js';
 
 const setDetailsSchema = {
   type: 'array',
@@ -33,7 +34,12 @@ const setDetailsSchema = {
       },
       weight: {
         type: 'number',
-        description: 'Weight percentage (0-100) for this set',
+        description: "Weight percentage (0-100) of Tonal's suggested weight for this movement, for this set",
+      },
+      weightLb: {
+        type: 'number',
+        exclusiveMinimum: 0,
+        description: "Target weight in pounds for this set, converted to a percentage of Tonal's suggested weight from your most recent performance of the movement at this set's reps (or duration), since Tonal's suggestion depends on them. Needs that movement at those reps in your last 20 Tonal workouts, on-machine only; the result must fall within 1-100%. Not combinable with weight on the same set.",
       },
       warmUp: {
         type: 'boolean',
@@ -97,7 +103,12 @@ const exerciseItemSchema = {
     },
     weight: {
       type: 'number',
-      description: 'Optional: Weight percentage (0-100) for this exercise. When setDetails is supplied, this is the fallback for any set that omits its own weight.',
+      description: "Optional: Weight percentage (0-100) of Tonal's suggested weight for this movement. When setDetails is supplied, this is the fallback for any set that omits its own weight.",
+    },
+    weightLb: {
+      type: 'number',
+      exclusiveMinimum: 0,
+      description: "Optional: target weight in pounds, converted per set to a percentage of Tonal's suggested weight from your most recent performance of the movement at that set's reps (or duration), since Tonal's suggestion depends on them (see get_suggested_weights). Needs that movement at those reps in your last 20 Tonal workouts, on-machine only; the result must fall within 1-100%. Not combinable with weight on the same exercise. When setDetails is supplied, this is the fallback for any set without its own weight or weightLb.",
     },
     setDetails: setDetailsSchema,
     isWarmup: {
@@ -559,6 +570,28 @@ const movementTools: MCPToolDefinition[] = [
       destructiveHint: false,
     },
     handler: searchMovements,
+  },
+  {
+    name: 'get_suggested_weights',
+    description: "Get Tonal's last recorded suggested weight in pounds for on-machine movements, per prescribed rep count (or duration), from your most recent performed sets in your last 20 Tonal workouts. Tonal's suggestion depends on the reps, and each value estimates what 100% loads at that prescription; Tonal may have changed it since. A set's weight percentage is a share of the suggestion for its reps, so use this to choose percentages or check what weightLb will convert to.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        movementNames: {
+          type: 'array',
+          minItems: 1,
+          maxItems: 20,
+          items: { type: 'string' },
+          description: 'Exact movement names (use search_movements to find them)',
+        },
+      },
+      required: ['movementNames'],
+    },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+    },
+    handler: getSuggestedWeights,
   },
 ];
 

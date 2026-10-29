@@ -2,6 +2,7 @@ import TonalClient from '@dlwiest/ts-tonal-client';
 import { MCPResponse } from '../types/index.js';
 import { handleToolError } from '../utils/error-handler.js';
 import { exercisesToSets } from '../utils/workout-conversion.js';
+import { formatPoundConversions, resolvePoundTargets } from '../utils/pound-targets.js';
 import { validateWorkoutExercises } from '../utils/validation.js';
 
 export async function estimateWorkoutDuration(
@@ -9,10 +10,11 @@ export async function estimateWorkoutDuration(
   args?: Record<string, unknown>
 ): Promise<MCPResponse> {
   try {
-    const exercises = args?.exercises;
-    validateWorkoutExercises(exercises);
+    const requestedExercises = args?.exercises;
+    validateWorkoutExercises(requestedExercises);
 
     const movements = await client.getMovements();
+    const { exercises, conversions } = await resolvePoundTargets(client, requestedExercises, movements);
     const sets = exercisesToSets(exercises, movements);
     const estimate = await client.estimateWorkoutDuration(sets);
 
@@ -57,6 +59,7 @@ export async function estimateWorkoutDuration(
       report += `\n`;
     });
 
+    report += formatPoundConversions(conversions);
     report += `\n_Estimate only — nothing was created or modified on your Tonal._\n`;
 
     return {

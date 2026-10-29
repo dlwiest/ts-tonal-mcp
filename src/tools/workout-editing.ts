@@ -2,6 +2,7 @@ import type TonalClient from '@dlwiest/ts-tonal-client';
 import type { MCPResponse } from '../types/index.js';
 import { handleToolError } from '../utils/error-handler.js';
 import { exercisesToSets, reconstructExercisesFromSets } from '../utils/workout-conversion.js';
+import { formatPoundConversions, resolvePoundTargets } from '../utils/pound-targets.js';
 import { findWorkoutByName } from './custom-workouts.js';
 import {
   validateOptionalString,
@@ -98,8 +99,8 @@ export async function updateWorkout(
         ? undefined
         : validateRequiredString(args.title, 'Workout title');
     const description = validateOptionalString(args?.description, 'Workout description');
-    const exercises = args?.exercises;
-    validateWorkoutExercises(exercises);
+    const requestedExercises = args?.exercises;
+    validateWorkoutExercises(requestedExercises);
 
     const matchingWorkouts = await findWorkoutByName(client, workoutName);
 
@@ -133,6 +134,7 @@ export async function updateWorkout(
     const originalWorkout = matchingWorkouts[0];
     const detailedWorkout = await client.getWorkoutById(originalWorkout.id);
     const movements = await client.getMovements();
+    const { exercises, conversions } = await resolvePoundTargets(client, requestedExercises, movements);
     const newSets = exercisesToSets(exercises, movements);
 
     const updatedWorkout = await client.updateWorkout({
@@ -165,7 +167,8 @@ export async function updateWorkout(
       2
     );
     report += `\n\`\`\`\n\n`;
-    report += `_Your changes have been saved and synced to your Tonal!_\n`;
+    report += formatPoundConversions(conversions);
+    report += `\n_Your changes have been saved and synced to your Tonal!_\n`;
 
     return {
       content: [{ type: 'text' as const, text: report }],
