@@ -98,7 +98,7 @@ node dist/index.js
 
 ## Available Tools
 
-The server provides 20 tools for LLM interactions:
+The server provides 24 tools for LLM interactions:
 
 | Tool | Description |
 |------|-------------|
@@ -122,6 +122,12 @@ The server provides 20 tools for LLM interactions:
 | `update_workout` | Update an existing workout by replacing its full set list |
 | `estimate_workout_duration` | Estimate how long a prescribed workout would take, without creating or modifying anything |
 | `get_suggested_weights` | Get Tonal's last recorded suggested weight in pounds per on-machine movement (an estimate of what 100% loads), from your most recent performed set |
+| `search_workout_library` | Search Tonal's published guided workouts by text, level, target area, training type, device, length, and equipment (required, or limited to what you own), newest first |
+| `search_program_library` | Search Tonal's published programs by text, level, weeks, workouts per week, device, and equipment, newest first |
+| `get_library_workout` | Get a guided workout's exercises in the shape `create_workout` accepts, flagging sets with no weight percentage |
+| `get_library_program` | Get a program's week-by-week schedule of workouts |
+
+The library tools read Tonal's full catalog (over 3,000 workouts and 300 programs) through the client's on-disk cache, so only the first search in a 24-hour window downloads it.
 
 ### Per-set programming
 

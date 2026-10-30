@@ -16,6 +16,7 @@ import { estimateWorkoutDuration } from './workout-duration.js';
 import { listWorkoutActivities } from './workout-activities.js';
 import { getWorkoutActivityDetails, getWorkoutSummary } from './workout-activity-details.js';
 import { getSuggestedWeights } from './suggested-weights.js';
+import { getLibraryProgram, getLibraryWorkout, searchProgramLibrary, searchWorkoutLibrary } from './library.js';
 
 const setDetailsSchema = {
   type: 'array',
@@ -595,6 +596,115 @@ const movementTools: MCPToolDefinition[] = [
   },
 ];
 
+// Tonal's published guided workouts and programs
+const pageProperties = {
+  limit: {
+    type: 'integer',
+    minimum: 1,
+    maximum: 50,
+    description: 'Results per page (default 10, at most 50)',
+  },
+  offset: {
+    type: 'integer',
+    minimum: 0,
+    description: 'Results to skip, for the next page (default 0)',
+  },
+};
+
+const libraryTools: MCPToolDefinition[] = [
+  {
+    name: 'search_workout_library',
+    description: "Search Tonal's published guided workouts (not your custom workouts or history), newest first. All filters are optional and combine. Use get_library_workout for a result's exercises.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Case-insensitive text to find in the title or description' },
+        level: { type: 'string', description: 'BEGINNER, INTERMEDIATE, ADVANCED, or ALL (case-insensitive)' },
+        targetArea: { type: 'string', description: 'UPPER BODY, LOWER BODY, FULL BODY, or CORE (case-insensitive)' },
+        trainingType: { type: 'string', description: 'Exact training type, case-insensitive, e.g. Strength, High Intensity, Yoga, Mobility, Cardio, Recovery, Boxing, Barre, Pilates' },
+        device: { type: 'string', description: 'Only workouts supported on this Tonal: Classic, T3, or Elite' },
+        minMinutes: { type: 'number', minimum: 0, description: 'Minimum length in minutes (inclusive)' },
+        maxMinutes: { type: 'number', minimum: 0, description: 'Maximum length in minutes (inclusive)' },
+        requiresEquipment: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Only workouts that use every listed accessory: StraightBar, Handles, Rope, Bench, Mat, Roller, AnkleStraps, PilatesLoops',
+        },
+        availableEquipment: {
+          type: 'array',
+          items: { type: 'string' },
+          description: "The accessories the user owns: only workouts that need nothing beyond them. Pass [] for a user with no accessories. Workouts whose equipment Tonal doesn't report are excluded.",
+        },
+        ...pageProperties,
+      },
+      required: [],
+    },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+    },
+    handler: searchWorkoutLibrary,
+  },
+  {
+    name: 'search_program_library',
+    description: "Search Tonal's published multi-week programs, newest first. All filters are optional and combine. Use get_library_program for a result's schedule.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Case-insensitive text to find in the name or description' },
+        level: { type: 'string', description: 'BEGINNER, INTERMEDIATE, ADVANCED, or ALL (case-insensitive)' },
+        weeks: { type: 'integer', minimum: 1, description: 'Exact program length in weeks' },
+        workoutsPerWeek: { type: 'integer', minimum: 1, description: 'Exact number of workouts per week' },
+        device: { type: 'string', description: 'Only programs supported on this Tonal: Classic, T3, or Elite' },
+        availableEquipment: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'The accessories the user owns: only programs that need nothing beyond them (StraightBar, Handles, Rope, Bench, Mat, Roller, AnkleStraps, PilatesLoops). Pass [] for a user with no accessories.',
+        },
+        ...pageProperties,
+      },
+      required: [],
+    },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+    },
+    handler: searchProgramLibrary,
+  },
+  {
+    name: 'get_library_workout',
+    description: "Get one Tonal guided workout's exercises (movement names, sets, reps or duration, weight percentages, blocks) by workoutId from search_workout_library or get_library_program. The exercises use the same shape create_workout accepts. Read-only: does not start or schedule the workout.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        workoutId: { type: 'string', description: 'The workoutId from a library search or program schedule' },
+      },
+      required: ['workoutId'],
+    },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+    },
+    handler: getLibraryWorkout,
+  },
+  {
+    name: 'get_library_program',
+    description: "Get one Tonal program's week-by-week schedule of workouts by programId from search_program_library. Read-only: does not enroll you.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        programId: { type: 'string', description: 'The programId from search_program_library' },
+      },
+      required: ['programId'],
+    },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+    },
+    handler: getLibraryProgram,
+  },
+];
+
 // Tool Categories
 export const toolCategories: ToolCategory[] = [
   {
@@ -611,6 +721,11 @@ export const toolCategories: ToolCategory[] = [
     name: 'movements',
     description: 'Exercise and movement database',
     tools: movementTools,
+  },
+  {
+    name: 'library',
+    description: "Tonal's published guided workouts and programs",
+    tools: libraryTools,
   },
 ];
 
