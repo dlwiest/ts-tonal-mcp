@@ -26,7 +26,7 @@
   "author": "dlwiest",
   "license": "ISC",
   "dependencies": {
-    "@dlwiest/ts-tonal-client": "^0.7.0",
+    "@dlwiest/ts-tonal-client": "^0.7.1",
     "@modelcontextprotocol/sdk": "^1.30.0"
   },
   "devDependencies": {
